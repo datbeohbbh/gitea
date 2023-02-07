@@ -35,8 +35,8 @@ func (err ErrRedirectNotExist) Unwrap() error {
 // Redirect represents that a repo name should be redirected to another
 type Redirect struct {
 	ID             int64  `xorm:"pk autoincr"`
-	OwnerID        int64  `xorm:"UNIQUE(s)"`
-	LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	OwnerID        int64  `xorm:"INDEX(s)"`
+	LowerName      string `xorm:"INDEX(s) NOT NULL"`
 	RedirectRepoID int64  // repoID to redirect to
 }
 

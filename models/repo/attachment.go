@@ -19,7 +19,7 @@ import (
 // Attachment represent a attachment of issue/comment/release.
 type Attachment struct {
 	ID            int64  `xorm:"pk autoincr"`
-	UUID          string `xorm:"uuid UNIQUE"`
+	UUID          string `xorm:"uuid index"`
 	RepoID        int64  `xorm:"INDEX"`           // this should not be zero
 	IssueID       int64  `xorm:"INDEX"`           // maybe zero when creating
 	ReleaseID     int64  `xorm:"INDEX"`           // maybe zero when creating

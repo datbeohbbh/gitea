@@ -147,11 +147,11 @@ type PullRequest struct {
 	ID              int64 `xorm:"pk autoincr"`
 	Type            PullRequestType
 	Status          PullRequestStatus
-	ConflictedFiles []string `xorm:"TEXT JSON"`
+	ConflictedFiles []string `xorm:"TEXT"`
 	CommitsAhead    int
 	CommitsBehind   int
 
-	ChangedProtectedFiles []string `xorm:"TEXT JSON"`
+	ChangedProtectedFiles []string `xorm:"TEXT"`
 
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
@@ -164,11 +164,11 @@ type PullRequest struct {
 	HeadBranch          string
 	HeadCommitID        string `xorm:"-"`
 	BaseBranch          string
-	MergeBase           string `xorm:"VARCHAR(40)"`
+	MergeBase           string `xorm:"VARCHAR"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
 	HasMerged      bool               `xorm:"INDEX"`
-	MergedCommitID string             `xorm:"VARCHAR(40)"`
+	MergedCommitID string             `xorm:"VARCHAR"`
 	MergerID       int64              `xorm:"INDEX"`
 	Merger         *user_model.User   `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
@@ -176,6 +176,8 @@ type PullRequest struct {
 	isHeadRepoLoaded bool `xorm:"-"`
 
 	Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
+
+	PrCreatedTime timeutil.TimeStamp `xorm:"created INDEX"`
 }
 
 func init() {
@@ -506,7 +508,13 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 func GetUnmergedPullRequest(ctx context.Context, headRepoID, baseRepoID int64, headBranch, baseBranch string, flow PullRequestFlow) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := db.GetEngine(ctx).
-		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND flow = ? AND issue.is_closed=?",
+		Select("`pull_request`.*").
+		Where("`pull_request`.head_repo_id=? "+
+			"AND `pull_request`.head_branch=? "+
+			"AND `pull_request`.base_repo_id=? "+
+			"AND `pull_request`.base_branch=? "+
+			"AND `pull_request`.has_merged=? "+
+			"AND `pull_request`.flow = ? AND issue.is_closed=?",
 			headRepoID, headBranch, baseRepoID, baseBranch, false, flow, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Get(pr)
@@ -524,8 +532,9 @@ func GetUnmergedPullRequest(ctx context.Context, headRepoID, baseRepoID int64, h
 func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := db.GetEngine(db.DefaultContext).
-		Where("head_repo_id = ? AND head_branch = ? AND flow = ?", repoID, branch, PullRequestFlowGithub).
-		OrderBy("id DESC").
+		Select("`pull_request`.*").
+		Where("`pull_request`.head_repo_id = ? AND `pull_request`.head_branch = ? AND `pull_request`.flow = ?", repoID, branch, PullRequestFlowGithub).
+		OrderBy("`pull_request`.pr_created_time DESC").
 		Get(pr)
 	if !has {
 		return nil, err

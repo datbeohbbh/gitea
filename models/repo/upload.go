@@ -42,7 +42,7 @@ func (err ErrUploadNotExist) Unwrap() error {
 // Upload represent a uploaded file to a repo to be deleted when moved
 type Upload struct {
 	ID   int64  `xorm:"pk autoincr"`
-	UUID string `xorm:"uuid UNIQUE"`
+	UUID string `xorm:"uuid INDEX"`
 	Name string
 }
 

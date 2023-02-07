@@ -42,10 +42,10 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
 			builder.Like{"lower_name", lowerKeyword},
-			builder.Like{"LOWER(full_name)", lowerKeyword},
+			// builder.Like{"LOWER(full_name)", lowerKeyword},
 		)
 		if opts.SearchByEmail {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
+			keywordCond = keywordCond.Or(builder.Like{"email", lowerKeyword})
 		}
 
 		cond = cond.And(keywordCond)

@@ -43,6 +43,9 @@ func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *us
 		groupBy = "created_unix DIV 900 * 900"
 	case setting.Database.UseMSSQL:
 		groupByName = groupBy
+	case setting.Database.UseYDB:
+		// groupBy = "created_unix"
+		groupByName = "created_unix"
 	}
 
 	cond, err := activityQueryCondition(GetFeedsOptions{
@@ -60,12 +63,14 @@ func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *us
 		return nil, err
 	}
 
-	return hdata, db.GetEngine(db.DefaultContext).
+	err = db.GetEngine(db.DefaultContext).
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where(cond).
-		And("created_unix > ?", timeutil.TimeStampNow()-31536000).
-		GroupBy(groupByName).
+		And("created_unix > ?", (timeutil.TimeStampNow()-31536000) * 1000000).
+		GroupBy("action." + groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)
+
+	return hdata, err
 }

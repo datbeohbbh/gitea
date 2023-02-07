@@ -83,14 +83,14 @@ func (err ErrProjectBoardNotExist) Unwrap() error {
 type Project struct {
 	ID          int64                  `xorm:"pk autoincr"`
 	Title       string                 `xorm:"INDEX NOT NULL"`
-	Description string                 `xorm:"TEXT"`
+	Description string                 `xorm:"VARCHAR"`
 	OwnerID     int64                  `xorm:"INDEX"`
 	Owner       *user_model.User       `xorm:"-"`
 	RepoID      int64                  `xorm:"INDEX"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CreatorID   int64                  `xorm:"NOT NULL"`
 	IsClosed    bool                   `xorm:"INDEX"`
-	BoardType   BoardType
+	BoardType   BoardType              `xorm:"MEDIUMINT"`
 	Type        Type
 
 	RenderedContent string `xorm:"-"`

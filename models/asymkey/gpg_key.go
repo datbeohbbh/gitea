@@ -30,15 +30,15 @@ import (
 type GPGKey struct {
 	ID                int64              `xorm:"pk autoincr"`
 	OwnerID           int64              `xorm:"INDEX NOT NULL"`
-	KeyID             string             `xorm:"INDEX CHAR(16) NOT NULL"`
-	PrimaryKeyID      string             `xorm:"CHAR(16)"`
+	KeyID             string             `xorm:"INDEX VARCHAR NOT NULL"`
+	PrimaryKeyID      string             `xorm:"VARCHAR"`
 	Content           string             `xorm:"MEDIUMTEXT NOT NULL"`
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	ExpiredUnix       timeutil.TimeStamp
 	AddedUnix         timeutil.TimeStamp
-	SubsKey           []*GPGKey `xorm:"-"`
-	Emails            []*user_model.EmailAddress
-	Verified          bool `xorm:"NOT NULL DEFAULT false"`
+	SubsKey           []*GPGKey                  `xorm:"-"`
+	Emails            []*user_model.EmailAddress `xorm:"BLOB"`
+	Verified          bool                       `xorm:"NOT NULL DEFAULT false"`
 	CanSign           bool
 	CanEncryptComms   bool
 	CanEncryptStorage bool

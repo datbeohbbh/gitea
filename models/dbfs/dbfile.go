@@ -280,15 +280,22 @@ func (f *file) truncate() error {
 	if f.metaID == 0 {
 		return os.ErrNotExist
 	}
-	return db.WithTx(f.ctx, func(ctx context.Context) error {
+	err := db.WithTx(f.ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).Exec("UPDATE dbfs_meta SET file_size = 0 WHERE id = ?", f.metaID); err != nil {
 			return err
 		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = db.WithTx(f.ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).Delete(&dbfsData{MetaID: f.metaID}); err != nil {
 			return err
 		}
 		return nil
 	})
+	return err
 }
 
 func (f *file) renameTo(newPath string) error {
@@ -308,15 +315,22 @@ func (f *file) delete() error {
 	if f.metaID == 0 {
 		return os.ErrNotExist
 	}
-	return db.WithTx(f.ctx, func(ctx context.Context) error {
+	err := db.WithTx(f.ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).Delete(&dbfsMeta{ID: f.metaID}); err != nil {
 			return err
 		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = db.WithTx(f.ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).Delete(&dbfsData{MetaID: f.metaID}); err != nil {
 			return err
 		}
 		return nil
 	})
+	return err
 }
 
 func (f *file) size() (int64, error) {

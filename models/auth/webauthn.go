@@ -45,13 +45,13 @@ func IsErrWebAuthnCredentialNotExist(err error) bool {
 type WebAuthnCredential struct {
 	ID              int64 `xorm:"pk autoincr"`
 	Name            string
-	LowerName       string `xorm:"unique(s)"`
-	UserID          int64  `xorm:"INDEX unique(s)"`
-	CredentialID    []byte `xorm:"INDEX VARBINARY(1024)"`
+	LowerName       string `xorm:"INDEX(s)"`
+	UserID          int64  `xorm:"INDEX(s)"`
+	CredentialID    []byte `xorm:"INDEX BLOB"`
 	PublicKey       []byte
 	AttestationType string
 	AAGUID          []byte
-	SignCount       uint32 `xorm:"BIGINT"`
+	SignCount       uint32
 	CloneWarning    bool
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`

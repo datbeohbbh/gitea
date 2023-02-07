@@ -29,7 +29,7 @@ type Reference struct {
 
 // Pointer contains LFS pointer data
 type Pointer struct {
-	Oid  string `json:"oid" xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Oid  string `json:"oid" xorm:"INDEX(s) NOT NULL"`
 	Size int64  `json:"size" xorm:"NOT NULL"`
 }
 

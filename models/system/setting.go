@@ -22,8 +22,8 @@ import (
 // Setting is a key value store of user settings
 type Setting struct {
 	ID           int64              `xorm:"pk autoincr"`
-	SettingKey   string             `xorm:"varchar(255) unique"` // ensure key is always lowercase
-	SettingValue string             `xorm:"text"`
+	SettingKey   string             `xorm:"varchar index"` // ensure key is always lowercase
+	SettingValue string             `xorm:"varchar"`
 	Version      int                `xorm:"version"` // prevent to override
 	Created      timeutil.TimeStamp `xorm:"created"`
 	Updated      timeutil.TimeStamp `xorm:"updated"`

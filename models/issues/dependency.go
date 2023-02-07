@@ -107,8 +107,8 @@ func (err ErrUnknownDependencyType) Unwrap() error {
 type IssueDependency struct {
 	ID           int64              `xorm:"pk autoincr"`
 	UserID       int64              `xorm:"NOT NULL"`
-	IssueID      int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	DependencyID int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	IssueID      int64              `xorm:"INDEX(issue_dependency) NOT NULL"`
+	DependencyID int64              `xorm:"INDEX(issue_dependency) NOT NULL"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
@@ -215,7 +215,7 @@ func IssueNoDependenciesLeft(ctx context.Context, issue *Issue) (bool, error) {
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
 		Where("issue_dependency.issue_id = ?", issue.ID).
-		And("issue.is_closed = ?", "0").
+		And("issue.is_closed = ?", false).
 		Exist(&Issue{})
 
 	return !exists, err

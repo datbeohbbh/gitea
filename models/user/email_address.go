@@ -124,8 +124,8 @@ func (err ErrPrimaryEmailCannotDelete) Unwrap() error {
 type EmailAddress struct {
 	ID          int64  `xorm:"pk autoincr"`
 	UID         int64  `xorm:"INDEX NOT NULL"`
-	Email       string `xorm:"UNIQUE NOT NULL"`
-	LowerEmail  string `xorm:"UNIQUE NOT NULL"`
+	Email       string `xorm:"INDEX NOT NULL"`
+	LowerEmail  string `xorm:"INDEX NOT NULL"`
 	IsActivated bool
 	IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
 }

@@ -34,7 +34,7 @@ func (err ErrUserRedirectNotExist) Unwrap() error {
 // Redirect represents that a user name should be redirected to another
 type Redirect struct {
 	ID             int64  `xorm:"pk autoincr"`
-	LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerName      string `xorm:"INDEX(s) NOT NULL"`
 	RedirectUserID int64  // userID to redirect to
 }
 

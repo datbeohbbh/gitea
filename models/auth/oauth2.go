@@ -28,14 +28,14 @@ type OAuth2Application struct {
 	ID           int64 `xorm:"pk autoincr"`
 	UID          int64 `xorm:"INDEX"`
 	Name         string
-	ClientID     string `xorm:"unique"`
+	ClientID     string `xorm:"index"`
 	ClientSecret string
 	// OAuth defines both Confidential and Public client types
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.1
 	// "Authorization servers MUST record the client type in the client registration details"
 	// https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
 	ConfidentialClient bool               `xorm:"NOT NULL DEFAULT TRUE"`
-	RedirectURIs       []string           `xorm:"redirect_uris JSON TEXT"`
+	RedirectURIs       []string           `xorm:"redirect_uris TEXT"`
 	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix        timeutil.TimeStamp `xorm:"INDEX updated"`
 }

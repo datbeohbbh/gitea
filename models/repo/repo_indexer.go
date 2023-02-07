@@ -27,8 +27,8 @@ const (
 type RepoIndexerStatus struct { //revive:disable-line:exported
 	ID          int64           `xorm:"pk autoincr"`
 	RepoID      int64           `xorm:"INDEX(s)"`
-	CommitSha   string          `xorm:"VARCHAR(40)"`
-	IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
+	CommitSha   string          `xorm:"VARCHAR"`
+	IndexerType RepoIndexerType `xorm:"INDEX NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -43,11 +43,18 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 	}).And(builder.Eq{
 		"repository.is_empty": false,
 	})
-	sess := db.GetEngine(db.DefaultContext).Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
+	sess := db.
+		GetEngine(db.DefaultContext).
+		Table("repository").
+		Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id")
 	if maxRepoID > 0 {
-		cond = builder.And(cond, builder.Lte{
-			"repository.id": maxRepoID,
-		})
+		cond = builder.
+			And(cond, builder.Lte{
+				"repository.id": maxRepoID,
+			}).
+			And(builder.Eq{
+				"repo_indexer_status.indexer_type": indexerType,
+			})
 	}
 	if page >= 0 && pageSize > 0 {
 		start := 0
@@ -57,8 +64,7 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 		sess.Limit(pageSize, start)
 	}
 
-	sess.Where(cond).Cols("repository.id").Desc("repository.id")
-	err := sess.Find(&ids)
+	err := sess.Where(cond).Cols("repository.id").Desc("repository.id").Find(&ids)
 	return ids, err
 }
 

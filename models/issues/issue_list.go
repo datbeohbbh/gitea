@@ -6,6 +6,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -157,7 +158,12 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("label").
+		rows, err := db.
+			GetEngine(ctx).
+			Select("`label`.`id`, `label`.`repo_id`, `label`.`org_id`, `label`.`name`, `label`.`description`, "+
+				"`label`.`color`, `label`.`num_issues`, `label`.`num_closed_issues`, `label`.`created_unix`, `label`.`updated_unix`, "+
+				"`issue_label`.`id`, `issue_label`.`issue_id`, `issue_label`.`label_id`").
+			Table("label").
 			Join("LEFT", "issue_label", "issue_label.label_id = label.id").
 			In("issue_label.issue_id", issueIDs[:limit]).
 			Asc("label.name").
@@ -284,7 +290,19 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("issue_assignees").
+		rows, err := db.
+			GetEngine(ctx).
+			Select("`issue_assignees`.`id`, `issue_assignees`.`assignee_id`, `issue_assignees`.`issue_id`, "+
+				"`user`.`id`, `user`.`lower_name`, `user`.`name`, `user`.`full_name`, `user`.`email`, `user`.`keep_email_private`, "+
+				"`user`.`email_notifications_preference`, `user`.`passwd`, `user`.`passwd_hash_algo`, `user`.`must_change_password`, "+
+				"`user`.`login_type`, `user`.`login_source`, `user`.`login_name`, `user`.`type`, `user`.`location`, `user`.`website`, "+
+				"`user`.`rands`, `user`.`salt`, `user`.`language`, `user`.`description`, `user`.`created_unix`, `user`.`updated_unix`, "+
+				"`user`.`last_login_unix`, `user`.`last_repo_visibility`, `user`.`max_repo_creation`, `user`.`is_active`, `user`.`is_admin`, "+
+				"`user`.`is_restricted`, `user`.`allow_git_hook`, `user`.`allow_import_local`, `user`.`allow_create_organization`, "+
+				"`user`.`prohibit_login`, `user`.`avatar`, `user`.`avatar_email`, `user`.`use_custom_avatar`, `user`.`num_followers`, "+
+				"`user`.`num_following`, `user`.`num_stars`, `user`.`num_repos`, `user`.`num_teams`, `user`.`num_members`, `user`.`visibility`, "+
+				"`user`.`repo_admin_change_team_access`, `user`.`diff_view_style`, `user`.`theme`, `user`.`keep_activity_private`").
+			Table("issue_assignees").
 			Join("INNER", "`user`", "`user`.id = `issue_assignees`.assignee_id").
 			In("`issue_assignees`.issue_id", issueIDs[:limit]).OrderBy(user_model.GetOrderByName()).
 			Rows(new(AssigneeIssue))
@@ -341,6 +359,7 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 		if left < limit {
 			limit = left
 		}
+		log.Printf("[DEBUG]: [issuesIDs]: %+v\n", issuesIDs[:limit])
 		rows, err := db.GetEngine(ctx).
 			In("issue_id", issuesIDs[:limit]).
 			Rows(new(PullRequest))
@@ -358,6 +377,8 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 				return err
 			}
 			pullRequestMaps[pr.IssueID] = &pr
+			log.Printf("[DEBUG]: [pr.IssueId] %+v\n", pr.IssueID)
+			log.Printf("[DEBUG]: [pr]%+v\n", pr)
 		}
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
@@ -386,7 +407,11 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("attachment").
+		rows, err := db.GetEngine(ctx).
+			Select("`attachment`.`id`, `attachment`.`uuid`, `attachment`.`repo_id`, `attachment`.`issue_id`, "+
+				"`attachment`.`release_id`, `attachment`.`uploader_id`, `attachment`.`comment_id`, `attachment`.`name`, "+
+				"`attachment`.`download_count`, `attachment`.`size`, `attachment`.`created_unix`").
+			Table("attachment").
 			Join("INNER", "issue", "issue.id = attachment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
 			Rows(new(repo_model.Attachment))
@@ -431,7 +456,17 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 		if left < limit {
 			limit = left
 		}
-		rows, err := db.GetEngine(ctx).Table("comment").
+		rows, err := db.GetEngine(ctx).
+			Select("`comment`.`id`, `comment`.`type`, `comment`.`poster_id`, `comment`.`original_author`, "+
+				"`comment`.`original_author_id`, `comment`.`issue_id`, `comment`.`label_id`, `comment`.`old_project_id`, "+
+				"`comment`.`project_id`, `comment`.`old_milestone_id`, `comment`.`milestone_id`, `comment`.`time_id`, "+
+				"`comment`.`assignee_id`, `comment`.`removed_assignee`, `comment`.`assignee_team_id`, `comment`.`resolve_doer_id`, "+
+				"`comment`.`old_title`, `comment`.`new_title`, `comment`.`old_ref`, `comment`.`new_ref`, `comment`.`dependent_issue_id`, "+
+				"`comment`.`commit_id`, `comment`.`line`, `comment`.`tree_path`, `comment`.`content`, `comment`.`patch`, "+
+				"`comment`.`created_unix`, `comment`.`updated_unix`, `comment`.`commit_sha`, `comment`.`review_id`, "+
+				"`comment`.`invalidated`, `comment`.`ref_repo_id`, `comment`.`ref_issue_id`, `comment`.`ref_comment_id`, "+
+				"`comment`.`ref_action`, `comment`.`ref_is_pull`").
+			Table("comment").
 			Join("INNER", "issue", "issue.id = comment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
 			Where(cond).

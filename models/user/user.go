@@ -77,13 +77,13 @@ const (
 // User represents the object of individual and member of organization.
 type User struct {
 	ID        int64  `xorm:"pk autoincr"`
-	LowerName string `xorm:"UNIQUE NOT NULL"`
-	Name      string `xorm:"UNIQUE NOT NULL"`
+	LowerName string `xorm:"INDEX NOT NULL"`
+	Name      string `xorm:"INDEX NOT NULL"`
 	FullName  string
 	// Email is the primary email address (to be used for communication)
 	Email                        string `xorm:"NOT NULL"`
 	KeepEmailPrivate             bool
-	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+	EmailNotificationsPreference string `xorm:"VARCHAR NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
 	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
@@ -97,9 +97,9 @@ type User struct {
 	Type        UserType
 	Location    string
 	Website     string
-	Rands       string `xorm:"VARCHAR(32)"`
-	Salt        string `xorm:"VARCHAR(32)"`
-	Language    string `xorm:"VARCHAR(5)"`
+	Rands       string `xorm:"VARCHAR"`
+	Salt        string `xorm:"VARCHAR"`
+	Language    string `xorm:"VARCHAR"`
 	Description string
 
 	CreatedUnix   timeutil.TimeStamp `xorm:"INDEX created"`
@@ -128,7 +128,7 @@ type User struct {
 	ProhibitLogin bool `xorm:"NOT NULL DEFAULT false"`
 
 	// Avatar
-	Avatar          string `xorm:"VARCHAR(2048) NOT NULL"`
+	Avatar          string `xorm:"VARCHAR NOT NULL"`
 	AvatarEmail     string `xorm:"NOT NULL"`
 	UseCustomAvatar bool
 

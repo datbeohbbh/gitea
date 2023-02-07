@@ -84,27 +84,47 @@ func GetNextResourceIndex(ctx context.Context, tableName string, groupID int64) 
 	if err != nil {
 		return 0, err
 	}
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-	if affected == 0 {
-		// this slow path is only for the first time of creating a resource index
-		_, errIns := e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) VALUES (?, 0)", tableName), groupID)
-		res, err = e.Exec(fmt.Sprintf("UPDATE %s SET max_index=max_index+1 WHERE group_id=?", tableName), groupID)
+
+	if !setting.Database.UseYDB {
+		affected, err := res.RowsAffected()
 		if err != nil {
 			return 0, err
 		}
-		affected, err = res.RowsAffected()
-		if err != nil {
-			return 0, err
-		}
-		// if the update still can not update any records, the record must not exist and there must be some errors (insert error)
 		if affected == 0 {
-			if errIns == nil {
-				return 0, errors.New("impossible error when GetNextResourceIndex, insert and update both succeeded but no record is updated")
+			// this slow path is only for the first time of creating a resource index
+			_, errIns := e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) VALUES (?, 0)", tableName), groupID)
+			res, err = e.Exec(fmt.Sprintf("UPDATE %s SET max_index=max_index+1 WHERE group_id=?", tableName), groupID)
+			if err != nil {
+				return 0, err
 			}
-			return 0, errIns
+			affected, err = res.RowsAffected()
+			if err != nil {
+				return 0, err
+			}
+			// if the update still can not update any records, the record must not exist and there must be some errors (insert error)
+			if affected == 0 {
+				if errIns == nil {
+					return 0, errors.New("impossible error when GetNextResourceIndex, insert and update both succeeded but no record is updated")
+				}
+				return 0, errIns
+			}
+		}
+	} else {
+		hasGroupID, err := e.Table(tableName).Where("group_id = ?", groupID).Exist()
+		if err != nil {
+			return 0, err
+		}
+		if !hasGroupID {
+			// this slow path is only for the first time of creating a resource index
+			_, errIns := e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) VALUES (?, 0)", tableName), groupID)
+			if errIns != nil {
+				return 0, errIns
+			}
+		}
+
+		_, err = e.Exec(fmt.Sprintf("UPDATE %s SET max_index=max_index+1 WHERE group_id=?", tableName), groupID)
+		if err != nil {
+			return 0, err
 		}
 	}
 

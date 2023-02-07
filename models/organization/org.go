@@ -641,11 +641,14 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 func (org *Organization) getUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
 	return teams, db.GetEngine(ctx).
+		Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, "+
+			"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, "+
+			"`team`.`can_create_org_repo`").
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
 		Join("INNER", "`user`", "`user`.id=team_user.uid").
 		And("`team_user`.uid = ?", userID).
-		Asc("`user`.name").
+		// Asc("`user`.name").
 		Cols(cols...).
 		Find(&teams)
 }

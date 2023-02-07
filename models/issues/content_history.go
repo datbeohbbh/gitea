@@ -23,7 +23,7 @@ type ContentHistory struct {
 	IssueID        int64              `xorm:"INDEX"`
 	CommentID      int64              `xorm:"INDEX"`
 	EditedUnix     timeutil.TimeStamp `xorm:"INDEX"`
-	ContentText    string             `xorm:"LONGTEXT"`
+	ContentText    string             `xorm:"VARCHAR"`
 	IsFirstCreated bool
 	IsDeleted      bool
 }

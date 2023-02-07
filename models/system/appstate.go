@@ -13,9 +13,9 @@ import (
 // if one day we would make Gitea run as a cluster,
 // we can introduce a new field `Scope` here to store different states for different nodes
 type AppState struct {
-	ID       string `xorm:"pk varchar(200)"`
+	ID       string `xorm:"pk varchar"`
 	Revision int64
-	Content  string `xorm:"LONGTEXT"`
+	Content  string `xorm:"VARCHAR"`
 }
 
 func init() {
@@ -27,18 +27,21 @@ func SaveAppStateContent(key, content string) error {
 	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
 		eng := db.GetEngine(ctx)
 		// try to update existing row
-		res, err := eng.Exec("UPDATE app_state SET revision=revision+1, content=? WHERE id=?", content, key)
+		cnt, err := eng.Table("app_state").Where("id = ?", key).Count()
 		if err != nil {
 			return err
 		}
-		rows, _ := res.RowsAffected()
-		if rows != 0 {
-			// the existing row is updated, so we can return
-			return nil
+		if cnt == 0 {
+			// if no existing row, insert a new row
+			_, err = eng.Insert(&AppState{ID: key, Content: content})
+			return err
+		} else {
+			_, err := eng.Exec("UPDATE app_state SET revision=revision+1, content=? WHERE id=?", content, key)
+			if err != nil {
+				return err
+			}
 		}
-		// if no existing row, insert a new row
-		_, err = eng.Insert(&AppState{ID: key, Content: content})
-		return err
+		return nil
 	})
 }
 

@@ -27,7 +27,7 @@ type RepoTransfer struct {
 	RecipientID int64
 	Recipient   *user_model.User `xorm:"-"`
 	RepoID      int64
-	TeamIDs     []int64
+	TeamIDs     []int64              `xorm:"TEXT"`
 	Teams       []*organization.Team `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`

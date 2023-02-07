@@ -15,8 +15,8 @@ import (
 type TeamUnit struct {
 	ID         int64     `xorm:"pk autoincr"`
 	OrgID      int64     `xorm:"INDEX"`
-	TeamID     int64     `xorm:"UNIQUE(s)"`
-	Type       unit.Type `xorm:"UNIQUE(s)"`
+	TeamID     int64     `xorm:"INDEX(s)"`
+	Type       unit.Type `xorm:"INDEX(s)"`
 	AccessMode perm.AccessMode
 }
 

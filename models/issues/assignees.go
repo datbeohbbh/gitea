@@ -29,8 +29,8 @@ func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 	issue.Assignees = []*user_model.User{}
 	issue.Assignee = nil
 
-	err = db.GetEngine(ctx).Table("`user`").
-		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
+	err = db.GetEngine(ctx).Select("`user`.*").Table("`user`").
+		Join("INNER", "issue_assignees", "`issue_assignees`.assignee_id = `user`.id").
 		Where("issue_assignees.issue_id = ?", issue.ID).
 		Find(&issue.Assignees)
 	if err != nil {

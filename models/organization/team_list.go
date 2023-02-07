@@ -60,7 +60,7 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
 		if opts.IncludeDesc {
-			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
+			keywordCond = keywordCond.Or(builder.Like{"description", lowerKeyword})
 		}
 		cond = cond.And(keywordCond)
 	}
@@ -78,7 +78,11 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
 func SearchTeam(opts *SearchTeamOptions) (TeamList, int64, error) {
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.
+		GetEngine(db.DefaultContext).
+		Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, " +
+			"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, " +
+			"`team`.`can_create_org_repo`")
 
 	opts.SetDefaultValues()
 	cond := opts.toCond()
@@ -100,6 +104,9 @@ func SearchTeam(opts *SearchTeamOptions) (TeamList, int64, error) {
 // GetRepoTeams gets the list of teams that has access to the repository
 func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams TeamList, err error) {
 	return teams, db.GetEngine(ctx).
+		Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, "+
+			"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, "+
+			"`team`.`can_create_org_repo`").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", repo.OwnerID).
 		And("team_repo.repo_id=?", repo.ID).
@@ -110,6 +117,9 @@ func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams TeamL
 // GetUserOrgTeams returns all teams that user belongs to in given organization.
 func GetUserOrgTeams(ctx context.Context, orgID, userID int64) (teams TeamList, err error) {
 	return teams, db.GetEngine(ctx).
+		Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, "+
+			"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, "+
+			"`team`.`can_create_org_repo`").
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Where("team.org_id = ?", orgID).
 		And("team_user.uid=?", userID).
@@ -119,6 +129,9 @@ func GetUserOrgTeams(ctx context.Context, orgID, userID int64) (teams TeamList, 
 // GetUserRepoTeams returns user repo's teams
 func GetUserRepoTeams(ctx context.Context, orgID, userID, repoID int64) (teams TeamList, err error) {
 	return teams, db.GetEngine(ctx).
+		Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, "+
+			"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, "+
+			"`team`.`can_create_org_repo`").
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", orgID).

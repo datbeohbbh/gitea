@@ -23,8 +23,8 @@ type ProtectedTag struct {
 	NamePattern      string
 	RegexPattern     *regexp.Regexp `xorm:"-"`
 	GlobPattern      glob.Glob      `xorm:"-"`
-	AllowlistUserIDs []int64        `xorm:"JSON TEXT"`
-	AllowlistTeamIDs []int64        `xorm:"JSON TEXT"`
+	AllowlistUserIDs []int64        `xorm:"TEXT"`
+	AllowlistTeamIDs []int64        `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`

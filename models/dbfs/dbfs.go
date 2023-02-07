@@ -41,7 +41,7 @@ The DBFS solution:
 
 type dbfsMeta struct {
 	ID              int64  `xorm:"pk autoincr"`
-	FullPath        string `xorm:"VARCHAR(500) UNIQUE NOT NULL"`
+	FullPath        string `xorm:"VARCHAR NOT NULL"`
 	BlockSize       int64  `xorm:"BIGINT NOT NULL"`
 	FileSize        int64  `xorm:"BIGINT NOT NULL"`
 	CreateTimestamp int64  `xorm:"BIGINT NOT NULL"`

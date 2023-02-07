@@ -52,5 +52,11 @@ func Cell2Int64(val xorm.Cell) int64 {
 		v, _ := strconv.ParseInt(string((*val).([]uint8)), 10, 64)
 		return v
 	}
+	switch v := (*val).(type) {
+	case int64:
+		return v
+	case int32:
+		return int64(v)
+	}
 	return (*val).(int64)
 }

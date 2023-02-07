@@ -110,7 +110,7 @@ type SourceSettable interface {
 type Source struct {
 	ID            int64 `xorm:"pk autoincr"`
 	Type          Type
-	Name          string             `xorm:"UNIQUE"`
+	Name          string             `xorm:"INDEX"`
 	IsActive      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           convert.Conversion `xorm:"TEXT"`

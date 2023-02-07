@@ -29,15 +29,15 @@ import (
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
 	ID          int64                  `xorm:"pk autoincr"`
-	Index       int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID      int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	Index       int64                  `xorm:"INDEX(repo_sha_index)"`
+	RepoID      int64                  `xorm:"INDEX(repo_sha_index)"`
 	Repo        *repo_model.Repository `xorm:"-"`
-	State       api.CommitStatusState  `xorm:"VARCHAR(7) NOT NULL"`
-	SHA         string                 `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
-	TargetURL   string                 `xorm:"TEXT"`
-	Description string                 `xorm:"TEXT"`
-	ContextHash string                 `xorm:"char(40) index"`
-	Context     string                 `xorm:"TEXT"`
+	State       api.CommitStatusState  `xorm:"VARCHAR NOT NULL"`
+	SHA         string                 `xorm:"VARCHAR NOT NULL INDEX(repo_sha_index)"`
+	TargetURL   string                 `xorm:"VARCHAR"`
+	Description string                 `xorm:"VARCHAR"`
+	ContextHash string                 `xorm:"varchar index"`
+	Context     string                 `xorm:"VARCHAR"`
 	Creator     *user_model.User       `xorm:"-"`
 	CreatorID   int64
 
@@ -214,8 +214,8 @@ func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
 // CommitStatusIndex represents a table for commit status index
 type CommitStatusIndex struct {
 	ID       int64
-	RepoID   int64  `xorm:"unique(repo_sha)"`
-	SHA      string `xorm:"unique(repo_sha)"`
+	RepoID   int64  `xorm:"INDEX(repo_sha)"`
+	SHA      string `xorm:"INDEX(repo_sha)"`
 	MaxIndex int64  `xorm:"index"`
 }
 
@@ -225,7 +225,7 @@ func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOp
 	sess := db.GetEngine(ctx).Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
-		GroupBy("context_hash").OrderBy("max( id ) desc")
+		GroupBy("context_hash").OrderBy("id desc")
 
 	sess = db.SetSessionPagination(sess, &listOptions)
 

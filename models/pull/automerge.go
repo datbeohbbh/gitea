@@ -16,11 +16,11 @@ import (
 // AutoMerge represents a pull request scheduled for merging when checks succeed
 type AutoMerge struct {
 	ID          int64                 `xorm:"pk autoincr"`
-	PullID      int64                 `xorm:"UNIQUE"`
+	PullID      int64                 `xorm:"INDEX"`
 	DoerID      int64                 `xorm:"NOT NULL"`
 	Doer        *user_model.User      `xorm:"-"`
-	MergeStyle  repo_model.MergeStyle `xorm:"varchar(30)"`
-	Message     string                `xorm:"LONGTEXT"`
+	MergeStyle  repo_model.MergeStyle `xorm:"varchar"`
+	Message     string                `xorm:"VARCHAR"`
 	CreatedUnix timeutil.TimeStamp    `xorm:"created"`
 }
 

@@ -25,8 +25,8 @@ func init() {
 type PackageCleanupRule struct {
 	ID                   int64              `xorm:"pk autoincr"`
 	Enabled              bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	OwnerID              int64              `xorm:"UNIQUE(s) INDEX NOT NULL DEFAULT 0"`
-	Type                 Type               `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	OwnerID              int64              `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
+	Type                 Type               `xorm:"INDEX(s) NOT NULL"`
 	KeepCount            int                `xorm:"NOT NULL DEFAULT 0"`
 	KeepPattern          string             `xorm:"NOT NULL DEFAULT ''"`
 	KeepPatternMatcher   *regexp.Regexp     `xorm:"-"`

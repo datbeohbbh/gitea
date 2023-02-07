@@ -62,7 +62,7 @@ type AccessToken struct {
 	UID            int64 `xorm:"INDEX"`
 	Name           string
 	Token          string `xorm:"-"`
-	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
+	TokenHash      string `xorm:"INDEX"` // sha256 of token
 	TokenSalt      string
 	TokenLastEight string `xorm:"INDEX token_last_eight"`
 	Scope          AccessTokenScope

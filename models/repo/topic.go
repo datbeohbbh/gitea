@@ -27,7 +27,7 @@ var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 // Topic represents a topic of repositories
 type Topic struct {
 	ID          int64  `xorm:"pk autoincr"`
-	Name        string `xorm:"UNIQUE VARCHAR(50)"`
+	Name        string `xorm:"INDEX VARCHAR"`
 	RepoCount   int
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -193,7 +193,10 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 
 // FindTopics retrieves the topics via FindTopicOptions
 func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Select("topic.*").Where(opts.toConds())
+	sess := db.
+		GetEngine(db.DefaultContext).
+		Select("topic.id, topic.name, topic.repo_count, topic.created_unix, topic.updated_unix").
+		Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}

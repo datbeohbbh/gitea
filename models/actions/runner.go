@@ -23,18 +23,18 @@ import (
 // ActionRunner represents runner machines
 type ActionRunner struct {
 	ID          int64
-	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
-	Name        string                 `xorm:"VARCHAR(255)"`
+	UUID        string                 `xorm:"VARCHAR"`
+	Name        string                 `xorm:"VARCHAR"`
 	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
 	Owner       *user_model.User       `xorm:"-"`
 	RepoID      int64                  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
 	Repo        *repo_model.Repository `xorm:"-"`
-	Description string                 `xorm:"TEXT"`
+	Description string                 `xorm:"VARCHAR"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
 	RepoRange   string                 // glob match which repositories could use this runner
 
 	Token     string `xorm:"-"`
-	TokenHash string `xorm:"UNIQUE"` // sha256 of token
+	TokenHash string // sha256 of token
 	TokenSalt string
 	// TokenLastEight string `xorm:"token_last_eight"` // it's unnecessary because we don't find runners by token
 
@@ -42,9 +42,9 @@ type ActionRunner struct {
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
 	// Store OS and Artch.
-	AgentLabels []string
+	AgentLabels []string `xorm:"BLOB"`
 	// Store custom labes use defined.
-	CustomLabels []string
+	CustomLabels []string `xorm:"BLOB"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`

@@ -30,32 +30,32 @@ var ErrBranchIsProtected = errors.New("branch is protected")
 // ProtectedBranch struct
 type ProtectedBranch struct {
 	ID                            int64                  `xorm:"pk autoincr"`
-	RepoID                        int64                  `xorm:"UNIQUE(s)"`
+	RepoID                        int64                  `xorm:"INDEX(s)"`
 	Repo                          *repo_model.Repository `xorm:"-"`
-	RuleName                      string                 `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
+	RuleName                      string                 `xorm:"'branch_name' INDEX(s)"` // a branch name or a glob match to branch name
 	globRule                      glob.Glob              `xorm:"-"`
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
-	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
-	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT"`
+	WhitelistUserIDs              []int64  `xorm:"TEXT"`
+	WhitelistTeamIDs              []int64  `xorm:"TEXT"`
 	EnableMergeWhitelist          bool     `xorm:"NOT NULL DEFAULT false"`
 	WhitelistDeployKeys           bool     `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs         []int64  `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs         []int64  `xorm:"JSON TEXT"`
+	MergeWhitelistUserIDs         []int64  `xorm:"TEXT"`
+	MergeWhitelistTeamIDs         []int64  `xorm:"TEXT"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckContexts           []string `xorm:"JSON TEXT"`
+	StatusCheckContexts           []string `xorm:"TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
-	ApprovalsWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs     []int64  `xorm:"JSON TEXT"`
+	ApprovalsWhitelistUserIDs     []int64  `xorm:"TEXT"`
+	ApprovalsWhitelistTeamIDs     []int64  `xorm:"TEXT"`
 	RequiredApprovals             int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOutdatedBranch         bool     `xorm:"NOT NULL DEFAULT false"`
 	DismissStaleApprovals         bool     `xorm:"NOT NULL DEFAULT false"`
 	RequireSignedCommits          bool     `xorm:"NOT NULL DEFAULT false"`
-	ProtectedFilePatterns         string   `xorm:"TEXT"`
-	UnprotectedFilePatterns       string   `xorm:"TEXT"`
+	ProtectedFilePatterns         string   `xorm:"VARCHAR"`
+	UnprotectedFilePatterns       string   `xorm:"VARCHAR"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`

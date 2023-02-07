@@ -42,9 +42,9 @@ type HookResponse struct {
 type HookTask struct {
 	ID              int64  `xorm:"pk autoincr"`
 	HookID          int64  `xorm:"index"`
-	UUID            string `xorm:"unique"`
+	UUID            string `xorm:"index"`
 	api.Payloader   `xorm:"-"`
-	PayloadContent  string `xorm:"LONGTEXT"`
+	PayloadContent  string `xorm:"TEXT"`
 	EventType       webhook_module.HookEventType
 	IsDelivered     bool
 	Delivered       int64
@@ -52,9 +52,9 @@ type HookTask struct {
 
 	// History info.
 	IsSucceed       bool
-	RequestContent  string        `xorm:"LONGTEXT"`
+	RequestContent  string        `xorm:"TEXT"`
 	RequestInfo     *HookRequest  `xorm:"-"`
-	ResponseContent string        `xorm:"LONGTEXT"`
+	ResponseContent string        `xorm:"TEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
 }
 

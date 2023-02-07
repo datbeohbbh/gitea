@@ -25,13 +25,13 @@ func init() {
 // PackageVersion represents a package version
 type PackageVersion struct {
 	ID            int64              `xorm:"pk autoincr"`
-	PackageID     int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	PackageID     int64              `xorm:"INDEX(s) NOT NULL"`
 	CreatorID     int64              `xorm:"NOT NULL DEFAULT 0"`
 	Version       string             `xorm:"NOT NULL"`
-	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerVersion  string             `xorm:"INDEX(s) NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	MetadataJSON  string             `xorm:"metadata_json LONGTEXT"`
+	MetadataJSON  string             `xorm:"metadata_json BLOB"`
 	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
 

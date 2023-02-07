@@ -115,15 +115,15 @@ const (
 // Repository represents a git repository.
 type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
-	OwnerID             int64 `xorm:"UNIQUE(s) index"`
+	OwnerID             int64 `xorm:"index(s)"`
 	OwnerName           string
 	Owner               *user_model.User   `xorm:"-"`
-	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerName           string             `xorm:"INDEX(s) NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
-	Description         string             `xorm:"TEXT"`
-	Website             string             `xorm:"VARCHAR(2048)"`
+	Description         string             `xorm:"VARCHAR"`
+	Website             string             `xorm:"VARCHAR"`
 	OriginalServiceType api.GitServiceType `xorm:"index"`
-	OriginalURL         string             `xorm:"VARCHAR(2048)"`
+	OriginalURL         string             `xorm:"VARCHAR"`
 	DefaultBranch       string
 
 	NumWatches          int
@@ -167,12 +167,12 @@ type Repository struct {
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
-	Topics                          []string           `xorm:"TEXT JSON"`
+	Topics                          []string           `xorm:"TEXT"`
 
 	TrustModel TrustModelType
 
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
-	Avatar string `xorm:"VARCHAR(64)"`
+	Avatar string `xorm:"VARCHAR"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -747,17 +747,24 @@ func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed 
 		field += "issues"
 	}
 
-	subQuery := builder.Select("count(*)").
-		From("issue").Where(builder.Eq{
-		"repo_id": repoID,
-		"is_pull": isPull,
-	}.And(builder.If(isClosed, builder.Eq{"is_closed": isClosed})))
+	cond := builder.
+		And(builder.Eq{
+			"repo_id": repoID,
+			"is_pull": isPull,
+		}.And(builder.If(isClosed, builder.Eq{"is_closed": isClosed})))
+
+	cnt, err := db.GetEngine(ctx).Table("issue").Where(cond).Count()
+	if err != nil {
+		return err
+	}
 
 	// builder.Update(cond) will generate SQL like UPDATE ... SET cond
-	query := builder.Update(builder.Eq{field: subQuery}).
-		From("repository").
-		Where(builder.Eq{"id": repoID})
-	_, err := db.Exec(ctx, query)
+	_, err = db.
+		GetEngine(ctx).
+		Table("repository").
+		Where("id = ?", repoID).
+		SetExpr(field, int32(cnt)).
+		Update(&Repository{})
 	return err
 }
 

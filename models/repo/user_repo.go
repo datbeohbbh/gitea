@@ -121,12 +121,20 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 		// This a private repository:
 		// Anyone who can read the repository is a requestable reviewer
 
-		cond = cond.And(builder.In("`user`.id",
-			builder.Select("user_id").From("access").Where(
-				builder.Eq{"repo_id": repo.ID}.
-					And(builder.Gte{"mode": perm.AccessModeRead}),
-			),
-		))
+		a := make([]int64, 0)
+		err := db.
+			GetEngine(ctx).
+			Cols("user_id").
+			Table("access").
+			Where(builder.Eq{"repo_id": repo.ID}).
+			Where(builder.Gte{"mode": perm.AccessModeRead}).
+			Find(&a)
+
+		if err != nil {
+			return nil, err
+		}
+
+		cond = cond.And(builder.In("`user`.id", a))
 
 		if repo.Owner.Type == user_model.UserTypeIndividual && repo.Owner.ID != posterID {
 			// as private *user* repos don't generate an entry in the `access` table,
@@ -137,18 +145,64 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 	} else {
 		// This is a "public" repository:
 		// Any user that has read access, is a watcher or organization member can be requested to review
-		cond = cond.And(builder.And(builder.In("`user`.id",
-			builder.Select("user_id").From("access").
-				Where(builder.Eq{"repo_id": repo.ID}.
-					And(builder.Gte{"mode": perm.AccessModeRead})),
-		).Or(builder.In("`user`.id",
-			builder.Select("user_id").From("watch").
-				Where(builder.Eq{"repo_id": repo.ID}.
-					And(builder.In("mode", WatchModeNormal, WatchModeAuto))),
-		).Or(builder.In("`user`.id",
-			builder.Select("uid").From("org_user").
-				Where(builder.Eq{"org_id": repo.OwnerID}),
-		)))))
+		/* 		cond = cond.And(builder.And(builder.In("`user`.id",
+		   			builder.Select("user_id").From("access").
+		   				Where(builder.Eq{"repo_id": repo.ID}.
+		   					And(builder.Gte{"mode": perm.AccessModeRead})),
+		   		).Or(builder.In("`user`.id",
+		   			builder.Select("user_id").From("watch").
+		   				Where(builder.Eq{"repo_id": repo.ID}.
+		   					And(builder.In("mode", WatchModeNormal, WatchModeAuto))),
+		   		).Or(builder.In("`user`.id",
+		   			builder.Select("uid").From("org_user").
+		   				Where(builder.Eq{"org_id": repo.OwnerID}),
+		   		))))) */
+
+		ids := make([]int64, 0)
+
+		a := make([]int64, 0)
+		err := db.
+			GetEngine(ctx).
+			Cols("user_id").
+			Table("access").
+			Where(builder.Eq{"repo_id": repo.ID}).
+			Where(builder.Gte{"mode": perm.AccessModeRead}).
+			Find(&a)
+
+		if err != nil {
+			return nil, err
+		}
+
+		b := make([]int64, 0)
+		err = db.
+			GetEngine(ctx).
+			Cols("user_id").
+			Table("watch").
+			Where(builder.Eq{"repo_id": repo.ID}).
+			Where(builder.In("mode", WatchModeNormal, WatchModeAuto)).
+			Find(&b)
+
+		if err != nil {
+			return nil, err
+		}
+
+		c := make([]int64, 0)
+		err = db.
+			GetEngine(ctx).
+			Cols("uid").
+			Table("org_user").
+			Where(builder.Eq{"org_id": repo.OwnerID}).
+			Find(&c)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, a...)
+		ids = append(ids, b...)
+		ids = append(ids, c...)
+
+		cond = cond.And(builder.In("`user`.id", ids))
 	}
 
 	users := make([]*user_model.User, 0, 8)

@@ -113,10 +113,10 @@ type Review struct {
 	OriginalAuthorID int64
 	Issue            *Issue `xorm:"-"`
 	IssueID          int64  `xorm:"index"`
-	Content          string `xorm:"TEXT"`
+	Content          string `xorm:"VARCHAR"`
 	// Official is a review made by an assigned approver (counts towards approval)
 	Official  bool   `xorm:"NOT NULL DEFAULT false"`
-	CommitID  string `xorm:"VARCHAR(40)"`
+	CommitID  string `xorm:"VARCHAR"`
 	Stale     bool   `xorm:"NOT NULL DEFAULT false"`
 	Dismissed bool   `xorm:"NOT NULL DEFAULT false"`
 

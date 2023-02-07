@@ -39,10 +39,10 @@ func (err ErrUnitTypeNotExist) Unwrap() error {
 
 // RepoUnit describes all units of a repository
 type RepoUnit struct { //revive:disable-line:exported
-	ID          int64
+	ID          int64              `xorm:"pk autoincr"`
 	RepoID      int64              `xorm:"INDEX(s)"`
 	Type        unit.Type          `xorm:"INDEX(s)"`
-	Config      convert.Conversion `xorm:"TEXT"`
+	Config      convert.Conversion `xorm:"BLOB"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 

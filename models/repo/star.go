@@ -14,8 +14,8 @@ import (
 // Star represents a starred repo by an user.
 type Star struct {
 	ID          int64              `xorm:"pk autoincr"`
-	UID         int64              `xorm:"UNIQUE(s)"`
-	RepoID      int64              `xorm:"UNIQUE(s)"`
+	UID         int64              `xorm:"INDEX(s)"`
+	RepoID      int64              `xorm:"INDEX(s)"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 

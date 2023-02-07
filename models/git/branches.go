@@ -18,9 +18,9 @@ import (
 // DeletedBranch struct
 type DeletedBranch struct {
 	ID          int64              `xorm:"pk autoincr"`
-	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name        string             `xorm:"UNIQUE(s) NOT NULL"`
-	Commit      string             `xorm:"UNIQUE(s) NOT NULL"`
+	RepoID      int64              `xorm:"INDEX(s) NOT NULL"`
+	Name        string             `xorm:"INDEX(s) NOT NULL"`
+	Commit      string             `xorm:"INDEX(s) NOT NULL"`
 	DeletedByID int64              `xorm:"INDEX"`
 	DeletedBy   *user_model.User   `xorm:"-"`
 	DeletedUnix timeutil.TimeStamp `xorm:"INDEX created"`

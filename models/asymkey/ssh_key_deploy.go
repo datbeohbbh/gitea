@@ -27,13 +27,13 @@ import (
 // DeployKey represents deploy key information and its relation with repository.
 type DeployKey struct {
 	ID          int64 `xorm:"pk autoincr"`
-	KeyID       int64 `xorm:"UNIQUE(s) INDEX"`
-	RepoID      int64 `xorm:"UNIQUE(s) INDEX"`
+	KeyID       int64 `xorm:"INDEX(s)"`
+	RepoID      int64 `xorm:"INDEX(s)"`
 	Name        string
 	Fingerprint string
 	Content     string `xorm:"-"`
 
-	Mode perm.AccessMode `xorm:"NOT NULL DEFAULT 1"`
+	Mode perm.AccessMode `xorm:"MEDIUMINT NOT NULL DEFAULT 1"`
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`

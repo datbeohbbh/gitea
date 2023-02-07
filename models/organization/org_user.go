@@ -24,8 +24,8 @@ import (
 // OrgUser represents an organization-user relation.
 type OrgUser struct {
 	ID       int64 `xorm:"pk autoincr"`
-	UID      int64 `xorm:"INDEX UNIQUE(s)"`
-	OrgID    int64 `xorm:"INDEX UNIQUE(s)"`
+	UID      int64 `xorm:"INDEX(s)"`
+	OrgID    int64 `xorm:"INDEX(s)"`
 	IsPublic bool  `xorm:"INDEX"`
 }
 
@@ -75,6 +75,9 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 // CanCreateOrgRepo returns true if user can create repo in organization
 func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
+		Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, "+
+			"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, "+
+			"`team`.`can_create_org_repo`").
 		Where(builder.Eq{"team.can_create_org_repo": true}).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).

@@ -49,7 +49,7 @@ type Milestone struct {
 	RepoID          int64                  `xorm:"INDEX"`
 	Repo            *repo_model.Repository `xorm:"-"`
 	Name            string
-	Content         string `xorm:"TEXT"`
+	Content         string `xorm:"VARCHAR"`
 	RenderedContent string `xorm:"-"`
 	IsClosed        bool
 	NumIssues       int

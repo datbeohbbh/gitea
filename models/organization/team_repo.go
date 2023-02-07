@@ -17,8 +17,8 @@ import (
 type TeamRepo struct {
 	ID     int64 `xorm:"pk autoincr"`
 	OrgID  int64 `xorm:"INDEX"`
-	TeamID int64 `xorm:"UNIQUE(s)"`
-	RepoID int64 `xorm:"UNIQUE(s)"`
+	TeamID int64 `xorm:"INDEx(s)"`
+	RepoID int64 `xorm:"INDEx(s)"`
 }
 
 // HasTeamRepo returns true if given repository belongs to team.
@@ -76,7 +76,12 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 // GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
 func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode perm.AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
-	return teams, db.GetEngine(ctx).Where("team.authorize >= ?", mode).
+	return teams, db.
+		GetEngine(ctx).
+		Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, "+
+			"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, "+
+			"`team`.`can_create_org_repo`").
+		Where("team.authorize >= ?", mode).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).

@@ -18,10 +18,10 @@ import (
 // LanguageStat describes language statistics of a repository
 type LanguageStat struct {
 	ID          int64 `xorm:"pk autoincr"`
-	RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	RepoID      int64 `xorm:"INDEX(s) NOT NULL"`
 	CommitID    string
 	IsPrimary   bool
-	Language    string             `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
+	Language    string             `xorm:"VARCHAR INDEX(s) NOT NULL"`
 	Percentage  float32            `xorm:"-"`
 	Size        int64              `xorm:"NOT NULL DEFAULT 0"`
 	Color       string             `xorm:"-"`

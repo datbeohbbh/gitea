@@ -53,8 +53,16 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 // by given head information (repo and branch).
 func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, db.GetEngine(db.DefaultContext).
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
+	return prs, db.
+		GetEngine(db.DefaultContext).
+		Select("`pull_request`.`id`, `pull_request`.`type`, `pull_request`.`status`, `pull_request`.`conflicted_files`, "+
+			"`pull_request`.`commits_ahead`, `pull_request`.`commits_behind`, `pull_request`.`changed_protected_files`, "+
+			"`pull_request`.`issue_id`, `pull_request`.`index`, `pull_request`.`head_repo_id`, `pull_request`.`base_repo_id`, "+
+			"`pull_request`.`head_branch`, `pull_request`.`base_branch`, `pull_request`.`merge_base`, `pull_request`.`allow_maintainer_edit`, "+
+			"`pull_request`.`has_merged`, `pull_request`.`merged_commit_id`, `pull_request`.`merger_id`, `pull_request`.`merged_unix`, "+
+			"`pull_request`.`flow`").
+		Where("`pull_request`.head_repo_id = ? AND `pull_request`.head_branch = ? AND "+
+			"`pull_request`.`has_merged` = ? AND issue.is_closed = ? AND `pull_request`.`flow` = ?",
 			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Find(&prs)
@@ -97,7 +105,8 @@ func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *
 // by given head information (repo and branch)
 func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (bool, error) {
 	return db.GetEngine(ctx).
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
+		Select("`pull_request`.*").
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND `pull_request`.flow = ?",
 			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Exist(&PullRequest{})
@@ -107,7 +116,9 @@ func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, db.GetEngine(db.DefaultContext).
+	return prs, db.
+		GetEngine(db.DefaultContext).
+		Select("`pull_request`.*").
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").

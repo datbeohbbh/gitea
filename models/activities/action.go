@@ -82,7 +82,7 @@ type Action struct {
 	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
-	Content     string             `xorm:"TEXT"`
+	Content     string             `xorm:"VARCHAR"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
@@ -350,7 +350,9 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	}
 
 	sess := db.GetEngine(ctx).Where(cond).
-		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Select("`action`.`id`, `action`.`user_id`, `action`.`op_type`, `action`.`act_user_id`, "+
+			"`action`.`repo_id`, `action`.`comment_id`, `action`.`is_deleted`, `action`.`ref_name`, "+
+			"`action`.`is_private`, `action`.`content`, `action`.`created_unix`"). // this line will avoid select other joined table's columns
 		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()

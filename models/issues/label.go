@@ -90,7 +90,7 @@ type Label struct {
 	OrgID           int64 `xorm:"INDEX"`
 	Name            string
 	Description     string
-	Color           string `xorm:"VARCHAR(7)"`
+	Color           string `xorm:"VARCHAR"`
 	NumIssues       int
 	NumClosedIssues int
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
@@ -547,9 +547,9 @@ func CountLabelsByOrgID(orgID int64) (int64, error) {
 // GetLabelsByIssueID returns all labels that belong to given issue by ID.
 func GetLabelsByIssueID(ctx context.Context, issueID int64) ([]*Label, error) {
 	var labels []*Label
-	return labels, db.GetEngine(ctx).Where("issue_label.issue_id = ?", issueID).
+	return labels, db.GetEngine(ctx).Select("`label`.*").Where("issue_label.issue_id = ?", issueID).
 		Join("LEFT", "issue_label", "issue_label.label_id = label.id").
-		Asc("label.name").
+		Asc("name").
 		Find(&labels)
 }
 
@@ -581,8 +581,8 @@ func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {
 // IssueLabel represents an issue-label relation.
 type IssueLabel struct {
 	ID      int64 `xorm:"pk autoincr"`
-	IssueID int64 `xorm:"UNIQUE(s)"`
-	LabelID int64 `xorm:"UNIQUE(s)"`
+	IssueID int64 `xorm:"INDEX(s)"`
+	LabelID int64 `xorm:"INDEX(s)"`
 }
 
 // HasIssueLabel returns true if issue has been labeled.

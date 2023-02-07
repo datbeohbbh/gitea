@@ -29,9 +29,9 @@ const (
 // Watch is connection request for receiving repository notification.
 type Watch struct {
 	ID          int64              `xorm:"pk autoincr"`
-	UserID      int64              `xorm:"UNIQUE(watch)"`
-	RepoID      int64              `xorm:"UNIQUE(watch)"`
-	Mode        WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	UserID      int64              `xorm:"INDEX(watch)"`
+	RepoID      int64              `xorm:"INDEX(watch)"`
+	Mode        WatchMode          `xorm:"MEDIUMINT NOT NULL DEFAULT 1"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -134,12 +134,16 @@ func WatchRepo(ctx context.Context, userID, repoID int64, doWatch bool) (err err
 // GetWatchers returns all watchers of given repository.
 func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
-	return watches, db.GetEngine(ctx).Where("`watch`.repo_id=?", repoID).
-		And("`watch`.mode<>?", WatchModeDont).
-		And("`user`.is_active=?", true).
-		And("`user`.prohibit_login=?", false).
-		Join("INNER", "`user`", "`user`.id = `watch`.user_id").
-		Find(&watches)
+	return watches,
+		db.
+			GetEngine(ctx).
+			Select("`watch`.*").
+			Where("`watch`.repo_id=?", repoID).
+			And("`watch`.mode<>?", WatchModeDont).
+			And("`user`.is_active=?", true).
+			And("`user`.prohibit_login=?", false).
+			Join("INNER", "`user`", "`user`.id = `watch`.user_id").
+			Find(&watches)
 }
 
 // GetRepoWatchersIDs returns IDs of watchers for a given repo ID

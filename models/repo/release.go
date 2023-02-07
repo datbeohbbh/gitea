@@ -62,20 +62,20 @@ func (err ErrReleaseNotExist) Unwrap() error {
 // Release represents a release of repository.
 type Release struct {
 	ID               int64            `xorm:"pk autoincr"`
-	RepoID           int64            `xorm:"INDEX UNIQUE(n)"`
+	RepoID           int64            `xorm:"INDEX(n)"`
 	Repo             *Repository      `xorm:"-"`
 	PublisherID      int64            `xorm:"INDEX"`
 	Publisher        *user_model.User `xorm:"-"`
-	TagName          string           `xorm:"INDEX UNIQUE(n)"`
+	TagName          string           `xorm:"INDEX(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
 	Target           string
 	Title            string
-	Sha1             string `xorm:"VARCHAR(40)"`
+	Sha1             string `xorm:"VARCHAR"`
 	NumCommits       int64
 	NumCommitsBehind int64              `xorm:"-"`
-	Note             string             `xorm:"TEXT"`
+	Note             string             `xorm:"VARCHAR"`
 	RenderedNote     string             `xorm:"-"`
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`

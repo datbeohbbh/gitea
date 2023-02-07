@@ -104,15 +104,15 @@ func (err ErrIssueWasClosed) Error() string {
 // Issue represents an issue or pull request of repository.
 type Issue struct {
 	ID               int64                  `xorm:"pk autoincr"`
-	RepoID           int64                  `xorm:"INDEX UNIQUE(repo_index)"`
+	RepoID           int64                  `xorm:"INDEX(repo_index)"`
 	Repo             *repo_model.Repository `xorm:"-"`
-	Index            int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	Index            int64                  `xorm:"INDEX(repo_index)"` // Index in one repository.
 	PosterID         int64                  `xorm:"INDEX"`
 	Poster           *user_model.User       `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64                  `xorm:"index"`
 	Title            string                 `xorm:"name"`
-	Content          string                 `xorm:"LONGTEXT"`
+	Content          string                 `xorm:"VARCHAR"`
 	RenderedContent  string                 `xorm:"-"`
 	Labels           []*Label               `xorm:"-"`
 	MilestoneID      int64                  `xorm:"INDEX"`
@@ -1396,7 +1396,7 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 	return sess.Join("INNER", []string{"review", "r"}, "issue.id = r.issue_id").
 		And("issue.poster_id <> ?", reviewRequestedID).
 		And("r.type = ?", ReviewTypeRequest).
-		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
+		And("r.reviewer_id = ? and r.id in (select id from review where issue_id = review.issue_id and reviewer_id = review.reviewer_id and type in (?, ?, ?))"+
 			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
 }
@@ -1479,7 +1479,13 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 // Issues returns a list of issues by given conditions.
 func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
-	sess := db.GetEngine(ctx).
+	sess := db.
+		GetEngine(ctx).
+		Select("`issue`.id, `issue`.repo_id, `issue`.index, `issue`.poster_id, "+
+			"`issue`.original_author, `issue`.original_author_id, `issue`.name, `issue`.content, "+
+			"`issue`.milestone_id, `issue`.priority, `issue`.is_closed, `issue`.is_pull, "+
+			"`issue`.num_comments, `issue`.ref, `issue`.deadline_unix, `issue`.created_unix, "+
+			"`issue`.updated_unix, `issue`.closed_unix, `issue`.is_locked").
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionWithLimit(sess)
 
@@ -1488,6 +1494,10 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
+	}
+	//DEBUG
+	for _, issue := range issues {
+		fmt.Printf("[DEBUG]: %+v\n", issue)
 	}
 
 	if err := IssueList(issues).LoadAttributes(); err != nil {
@@ -1732,7 +1742,10 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
-		s := db.GetEngine(db.DefaultContext).Where(cond)
+		s := db.
+			GetEngine(db.DefaultContext).
+			Select("COUNT(*)").
+			Where(cond)
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
@@ -2038,6 +2051,19 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 // BlockedByDependencies finds all Dependencies an issue is blocked by
 func (issue *Issue) BlockedByDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
 	err = db.GetEngine(ctx).
+		Select("`issue`.`id`, `issue`.`repo_id`, `issue`.`index`, `issue`.`poster_id`, "+
+			"`issue`.`original_author`, `issue`.`original_author_id`, `issue`.`name`, `issue`.`content`, "+
+			"`issue`.`milestone_id`, `issue`.`priority`, `issue`.`is_closed`, `issue`.`is_pull`, `issue`.`num_comments`, "+
+			"`issue`.`ref`, `issue`.`deadline_unix`, `issue`.`created_unix`, `issue`.`updated_unix`, `issue`.`closed_unix`, `issue`.`is_locked`, "+
+			"`repository`.`id`, `repository`.`owner_id`, `repository`.`owner_name`, `repository`.`lower_name`, `repository`.`name`, "+
+			"`repository`.`description`, `repository`.`website`, `repository`.`original_service_type`, `repository`.`original_url`, "+
+			"`repository`.`default_branch`, `repository`.`num_watches`, `repository`.`num_stars`, `repository`.`num_forks`, `repository`.`num_issues`, "+
+			"`repository`.`num_closed_issues`, `repository`.`num_pulls`, `repository`.`num_closed_pulls`, `repository`.`num_milestones`, "+
+			"`repository`.`num_closed_milestones`, `repository`.`num_projects`, `repository`.`num_closed_projects`, `repository`.`num_action_runs`, "+
+			"`repository`.`num_closed_action_runs`, `repository`.`is_private`, `repository`.`is_empty`, `repository`.`is_archived`, `repository`.`is_mirror`, "+
+			"`repository`.`status`, `repository`.`is_fork`, `repository`.`fork_id`, `repository`.`is_template`, `repository`.`template_id`, `repository`.`size`, "+
+			"`repository`.`is_fsck_enabled`, `repository`.`close_issues_via_commit_in_any_branch`, `repository`.`topics`, `repository`.`trust_model`, "+
+			"`repository`.`avatar`, `repository`.`created_unix`, `repository`.`updated_unix`").
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
@@ -2056,6 +2082,19 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context) (issueDeps []*Dep
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
 	err = db.GetEngine(ctx).
+		Select("`issue`.`id`, `issue`.`repo_id`, `issue`.`index`, `issue`.`poster_id`, "+
+			"`issue`.`original_author`, `issue`.`original_author_id`, `issue`.`name`, `issue`.`content`, "+
+			"`issue`.`milestone_id`, `issue`.`priority`, `issue`.`is_closed`, `issue`.`is_pull`, `issue`.`num_comments`, "+
+			"`issue`.`ref`, `issue`.`deadline_unix`, `issue`.`created_unix`, `issue`.`updated_unix`, `issue`.`closed_unix`, `issue`.`is_locked`, "+
+			"`repository`.`id`, `repository`.`owner_id`, `repository`.`owner_name`, `repository`.`lower_name`, `repository`.`name`, "+
+			"`repository`.`description`, `repository`.`website`, `repository`.`original_service_type`, `repository`.`original_url`, "+
+			"`repository`.`default_branch`, `repository`.`num_watches`, `repository`.`num_stars`, `repository`.`num_forks`, `repository`.`num_issues`, "+
+			"`repository`.`num_closed_issues`, `repository`.`num_pulls`, `repository`.`num_closed_pulls`, `repository`.`num_milestones`, "+
+			"`repository`.`num_closed_milestones`, `repository`.`num_projects`, `repository`.`num_closed_projects`, `repository`.`num_action_runs`, "+
+			"`repository`.`num_closed_action_runs`, `repository`.`is_private`, `repository`.`is_empty`, `repository`.`is_archived`, `repository`.`is_mirror`, "+
+			"`repository`.`status`, `repository`.`is_fork`, `repository`.`fork_id`, `repository`.`is_template`, `repository`.`template_id`, `repository`.`size`, "+
+			"`repository`.`is_fsck_enabled`, `repository`.`close_issues_via_commit_in_any_branch`, `repository`.`topics`, `repository`.`trust_model`, "+
+			"`repository`.`avatar`, `repository`.`created_unix`, `repository`.`updated_unix`").
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
@@ -2127,6 +2166,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 	if issue.Repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
 		teams := make([]*organization.Team, 0, len(mentionTeams))
 		if err := db.GetEngine(ctx).
+			Select("`team`.*").
 			Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Where("team_repo.repo_id=?", issue.Repo.ID).
 			In("team.lower_name", mentionTeams).
@@ -2157,6 +2197,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			if len(checked) != 0 {
 				teamusers := make([]*user_model.User, 0, 20)
 				if err := db.GetEngine(ctx).
+					Select("`user`.*").
 					Join("INNER", "team_user", "team_user.uid = `user`.id").
 					In("`team_user`.team_id", checked).
 					And("`user`.is_active = ?", true).

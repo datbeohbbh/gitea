@@ -28,8 +28,8 @@ const (
 
 // EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
 type EmailHash struct {
-	Hash  string `xorm:"pk varchar(32)"`
-	Email string `xorm:"UNIQUE NOT NULL"`
+	Hash  string `xorm:"pk varchar"`
+	Email string `xorm:"NOT NULL"`
 }
 
 func init() {

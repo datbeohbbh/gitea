@@ -19,7 +19,7 @@ var ErrOpenIDNotExist = util.NewNotExistErrorf("OpenID is unknown")
 type UserOpenID struct { //revive:disable-line:exported
 	ID   int64  `xorm:"pk autoincr"`
 	UID  int64  `xorm:"INDEX NOT NULL"`
-	URI  string `xorm:"UNIQUE NOT NULL"`
+	URI  string `xorm:"INDEX NOT NULL"`
 	Show bool   `xorm:"DEFAULT false"`
 }
 

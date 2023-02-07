@@ -130,11 +130,11 @@ func (pt Type) SVGName() string {
 // Package represents a package
 type Package struct {
 	ID               int64  `xorm:"pk autoincr"`
-	OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	OwnerID          int64  `xorm:"INDEX(s) NOT NULL"`
 	RepoID           int64  `xorm:"INDEX"`
-	Type             Type   `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Type             Type   `xorm:"INDEX(s) NOT NULL"`
 	Name             string `xorm:"NOT NULL"`
-	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerName        string `xorm:"INDEX(s) NOT NULL"`
 	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
 }
 

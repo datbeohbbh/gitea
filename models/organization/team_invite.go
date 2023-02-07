@@ -72,11 +72,11 @@ func (err ErrUserEmailAlreadyAdded) Unwrap() error {
 // TeamInvite represents an invite to a team
 type TeamInvite struct {
 	ID          int64              `xorm:"pk autoincr"`
-	Token       string             `xorm:"UNIQUE(token) INDEX NOT NULL DEFAULT ''"`
+	Token       string             `xorm:"INDEX(token) NOT NULL DEFAULT ''"`
 	InviterID   int64              `xorm:"NOT NULL DEFAULT 0"`
 	OrgID       int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
-	TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL DEFAULT 0"`
-	Email       string             `xorm:"UNIQUE(team_mail) NOT NULL DEFAULT ''"`
+	TeamID      int64              `xorm:"INDEX(team_mail) NOT NULL DEFAULT 0"`
+	Email       string             `xorm:"INDEX(team_mail) NOT NULL DEFAULT ''"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }

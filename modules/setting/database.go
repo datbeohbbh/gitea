@@ -18,9 +18,9 @@ import (
 
 var (
 	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "ydb"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3", "ydb": "YDB"}
 
 	// EnableSQLite3 use SQLite3, set by build flag
 	EnableSQLite3 bool
@@ -43,6 +43,7 @@ var (
 		UseMySQL          bool
 		UseMSSQL          bool
 		UsePostgreSQL     bool
+		UseYDB            bool
 		DBConnectRetries  int
 		DBConnectBackoff  time.Duration
 		MaxIdleConns      int
@@ -76,6 +77,8 @@ func InitDBConfig() {
 		Database.UsePostgreSQL = true
 	case "mssql":
 		Database.UseMSSQL = true
+	case "ydb":
+		Database.UseYDB = true
 	}
 	Database.Host = sec.Key("HOST").String()
 	Database.Name = sec.Key("NAME").String()
@@ -146,6 +149,17 @@ func DBConnStr() (string, error) {
 		}
 		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
 			Database.Path, Database.Timeout, journalMode)
+	case "ydb":
+		tls := "grpc"
+		if Database.SSLMode != "disable" {
+			tls = "grpcs"
+		}
+		connStr = fmt.Sprintf("%s://%s/%s?query_mode=scripting", tls, Database.Host, Database.Name)
+		if Database.User != "" && Database.Passwd != "" {
+			connStr = fmt.Sprintf("%s://%s:%s@%s/%s?query_mode=scripting", tls, Database.User, Database.Passwd, Database.Host, Database.Name)
+		} else if _, has := os.LookupEnv("YDB_SSL_ROOT_CERTIFICATES_FILE"); !has {
+			connStr = ""
+		}
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}

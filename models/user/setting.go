@@ -18,9 +18,9 @@ import (
 // Setting is a key value store of user settings
 type Setting struct {
 	ID           int64  `xorm:"pk autoincr"`
-	UserID       int64  `xorm:"index unique(key_userid)"`              // to load all of someone's settings
-	SettingKey   string `xorm:"varchar(255) index unique(key_userid)"` // ensure key is always lowercase
-	SettingValue string `xorm:"text"`
+	UserID       int64  `xorm:"index(key_userid)"`         // to load all of someone's settings
+	SettingKey   string `xorm:"varchar index(key_userid)"` // ensure key is always lowercase
+	SettingValue string `xorm:"varchar"`
 }
 
 // TableName sets the table name for the settings struct

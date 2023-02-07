@@ -18,8 +18,8 @@ import (
 // Collaboration represent the relation between an individual and a repository.
 type Collaboration struct {
 	ID          int64              `xorm:"pk autoincr"`
-	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	UserID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	RepoID      int64              `xorm:"INDEX(s) NOT NULL"`
+	UserID      int64              `xorm:"INDEX(s) NOT NULL"`
 	Mode        perm.AccessMode    `xorm:"DEFAULT 2 NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

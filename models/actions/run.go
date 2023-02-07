@@ -27,18 +27,18 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"index unique(repo_index)"`
+	RepoID            int64                  `xorm:"index(repo_index)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
-	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
-	Index             int64                  `xorm:"index unique(repo_index)"` // a unique number for each run of a repository
+	WorkflowID        string                 `xorm:"index"`             // the name of workflow file
+	Index             int64                  `xorm:"index(repo_index)"` // a unique number for each run of a repository
 	TriggerUserID     int64
 	TriggerUser       *user_model.User `xorm:"-"`
 	Ref               string
 	CommitSHA         string
 	IsForkPullRequest bool
 	Event             webhook_module.HookEventType
-	EventPayload      string `xorm:"LONGTEXT"`
+	EventPayload      string `xorm:"VARCHAR"`
 	Status            Status `xorm:"index"`
 	Started           timeutil.TimeStamp
 	Stopped           timeutil.TimeStamp

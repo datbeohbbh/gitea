@@ -354,6 +354,8 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 	}
 	for _, result := range results {
 		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
+		fmt.Printf("[DEBUG] [id]: %+v\n", id)
+		fmt.Printf("[DEBUG] [desc]: %+v\n", checker.desc)
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before checking %s for with id=%d", checker.desc, id)
@@ -374,33 +376,71 @@ func StatsCorrectSQL(ctx context.Context, sql string, id int64) error {
 }
 
 func repoStatsCorrectNumWatches(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2); UPDATE `repository` SET num_watches = $cnt WHERE id=?", id)
 }
 
 func repoStatsCorrectNumStars(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `star` WHERE repo_id=?); UPDATE `repository` SET num_stars = $cnt WHERE id=?", id)
 }
 
 func labelStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?); UPDATE `label` SET num_issues = $cnt WHERE id=?", id)
 }
 
 func labelStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=id) WHERE repo_id=?", id)
+	_, err := db.GetEngine(ctx).Exec("$cnt=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=id); UPDATE `label` SET num_issues = $cnt WHERE repo_id=?", id)
 	return err
 }
 
 func labelStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?) WHERE `label`.id=?", true, id)
+	_, err := db.GetEngine(ctx).Exec("$cnt=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?); UPDATE `label` SET num_closed_issues = $cnt WHERE `label`.id=?", true, id)
 	return err
 }
 
 func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?) WHERE `label`.repo_id=?", true, id)
+	_, err := db.GetEngine(ctx).Exec("$cnt = (SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?); UPDATE `label` SET num_closed_issues = $cnt WHERE `label`.repo_id=?", true, id)
 	return err
 }
 
-var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
+// var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
+var milestoneStatsQueryNumIssues = `
+SELECT 
+  milestone.id as id 
+FROM 
+  milestone 
+  INNER JOIN (
+    SELECT 
+      milestone_1.id AS id, 
+      num_closed_issues, 
+      num_issues 
+    FROM 
+      (
+        SELECT 
+          milestone.id as id, 
+          COUNT(*) as num_closed_issues 
+        FROM 
+          milestone 
+          RIGHT JOIN issue ON issue.milestone_id = milestone.id 
+        WHERE 
+          issue.is_closed = ? 
+        GROUP BY 
+          milestone.id
+      ) AS milestone_1 
+      INNER JOIN (
+        SELECT 
+          milestone.id as id, 
+          COUNT(*) as num_issues 
+        FROM 
+          milestone 
+          RIGHT JOIN issue ON issue.milestone_id = milestone.id 
+        GROUP BY 
+          milestone.id
+      ) AS milestone_2 ON milestone_1.id = milestone_2.id
+  ) AS r_milestone ON milestone.id = r_milestone.id 
+WHERE 
+  milestone.num_closed_issues != r_milestone.num_closed_issues 
+  OR milestone.num_issues != r_milestone.num_issues
+`
 
 func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
@@ -419,11 +459,11 @@ func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 }
 
 func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?); UPDATE `user` SET num_repos = $cnt WHERE id=?", id)
 }
 
 func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0) WHERE id=?", id)
+	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0); UPDATE `issue` SET num_comments = $cnt WHERE id=?", id)
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
@@ -448,6 +488,213 @@ func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte,
 	}
 }
 
+var (
+	sqlCountNumWatches string = `
+SELECT 
+  repository.id as id
+FROM 
+  repository 
+  inner join (
+    SELECT 
+      repo.id as repo_id, 
+      count(*) as actual_watches 
+    FROM 
+      repository repo 
+      RIGHT JOIN watch ON repo.id = watch.repo_id 
+    GROUP BY 
+      repo.id
+  ) AS repo ON repository.id = repo.repo_id 
+WHERE 
+  repository.num_watches != repo.actual_watches	
+	`
+
+	sqlCountNumStars string = `
+SELECT 
+  repository.id as id
+FROM 
+  repository 
+  inner join (
+    SELECT 
+      repo.id as repo_id, 
+      count(*) as actual_star 
+    FROM 
+      repository repo 
+      RIGHT JOIN star ON repo.id = star.repo_id 
+    GROUP BY 
+      repo.id
+  ) AS repo ON repository.id = repo.repo_id 
+WHERE 
+  repository.num_stars != repo.actual_star	
+	`
+
+	sqlCountNumIssues = `
+SELECT 
+  repository.id as id
+FROM 
+  repository 
+  inner join (
+    SELECT 
+      repo.id as repo_id, 
+      count(*) as actual_issues
+    FROM 
+      repository repo 
+      RIGHT JOIN issue ON repo.id = issue.repo_id 
+    WHERE issue.is_pull = ?
+    GROUP BY 
+      repo.id
+  ) AS repo ON repository.id = repo.repo_id 
+WHERE 
+  repository.num_issues != repo.actual_issues	
+	`
+
+	sqlCountNumClosedIssues = `
+SELECT 
+  repository.id as id
+FROM 
+  repository 
+  inner join (
+    SELECT 
+      repo.id as repo_id, 
+      count(*) as actual_num_closed_issues
+    FROM 
+      repository repo 
+      RIGHT JOIN issue ON repo.id = issue.repo_id 
+    WHERE issue.is_closed = ? AND issue.is_pull = ?
+    GROUP BY 
+      repo.id
+  ) AS repo ON repository.id = repo.repo_id 
+WHERE 
+  repository.num_closed_issues != repo.actual_num_closed_issues	
+	`
+
+	sqlCountNumPulls = `
+SELECT 
+  repository.id as id
+FROM 
+  repository 
+  inner join (
+    SELECT 
+      repo.id as repo_id, 
+      count(*) as actual_num_pulls
+    FROM 
+      repository repo 
+      RIGHT JOIN issue ON repo.id = issue.repo_id 
+    WHERE issue.is_pull = ?
+    GROUP BY 
+      repo.id
+  ) AS repo ON repository.id = repo.repo_id 
+WHERE 
+  repository.num_pulls != repo.actual_num_pulls	
+	`
+	sqlCountNumClosedPulls = `
+SELECT 
+  repository.id as id
+FROM 
+  repository 
+  inner join (
+    SELECT 
+      repo.id as repo_id, 
+      count(*) as actual_num_closed_pulls
+    FROM 
+      repository repo 
+      RIGHT JOIN issue ON repo.id = issue.repo_id 
+    WHERE issue.is_closed = ? AND issue.is_pull = ?
+    GROUP BY 
+      repo.id
+  ) AS repo ON repository.id = repo.repo_id 
+WHERE 
+  repository.num_closed_pulls != repo.actual_num_closed_pulls	
+	`
+
+	sqlCountLabelNumIssues = `
+SELECT 
+  label.id as id
+FROM 
+  label 
+  inner join (
+    SELECT 
+      r_label.id as id, 
+      count(*) as actual_num_issues
+    FROM 
+      label r_label 
+      RIGHT JOIN issue_label ON r_label.id = issue_label.label_id 
+    GROUP BY 
+      r_label.id
+  ) AS r_label ON label.id = r_label.id 
+WHERE 
+  label.num_issues != r_label.actual_num_issues	
+	`
+
+	sqlCountUserRepos = "SELECT `user`.id as id FROM `user` inner join ( SELECT r_user.id as id, count(*) as actual_num_repos FROM `user` r_user RIGHT JOIN repository ON r_user.id = repository.owner_id " +
+		"GROUP BY r_user.id ) AS r_user ON `user`.id = r_user.id WHERE `user`.num_repos  != r_user.actual_num_repos"
+
+	sqlCountIssueNumComments = `
+SELECT 
+  issue.id as id
+FROM 
+  issue 
+  inner join (
+    SELECT 
+      issue.id as issue_id, 
+      count(*) as actual_num_comments
+    FROM 
+      issue
+      RIGHT JOIN comment ON issue.id = comment.issue_id 
+    WHERE comment.type = ?
+    GROUP BY 
+      issue.id
+  ) AS r_issue ON issue.id = r_issue.issue_id 
+WHERE 
+  issue.num_comments != r_issue.actual_num_comments		
+	`
+
+	sqlCountNumForks = `
+SELECT 
+  repository.id as id
+FROM 
+  repository 
+  inner join (
+    SELECT 
+      repo.id as repo_id, 
+      count(*) as actual_num_forks 
+    FROM 
+      repository repo 
+      RIGHT JOIN repository ON repo.id = repository.fork_id 
+    GROUP BY 
+      repo.id
+  ) AS repo ON repository.id = repo.repo_id 
+WHERE 
+  repository.num_forks != repo.actual_num_forks
+	`
+
+	sqlCountLabelClosedIssues = `
+SELECT 
+  label.id as id 
+FROM 
+  label 
+  INNER JOIN (
+    SELECT 
+      label.id as id, 
+      count(*) as actual_num_closed_issues 
+    FROM 
+      label 
+      RIGHT JOIN (
+        SELECT 
+          issue_label.label_id as id 
+        FROM 
+          issue_label 
+          INNER JOIN issue ON issue_label.issue_id = issue.id 
+        WHERE 
+          issue.is_closed = ?
+      ) AS issue_label ON label.id = issue_label.id 
+    GROUP BY 
+      label.id
+  ) AS r_label ON label.id = r_label.id 
+WHERE 
+  label.num_closed_issues != r_label.actual_num_closed_issues
+	`
+)
+
 // CheckRepoStats checks the repository stats
 func CheckRepoStats(ctx context.Context) error {
 	log.Trace("Doing: CheckRepoStats")
@@ -455,49 +702,57 @@ func CheckRepoStats(ctx context.Context) error {
 	checkers := []*repoChecker{
 		// Repository.NumWatches
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)"),
+			// statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)"),
+			statsQuery(sqlCountNumWatches),
 			repoStatsCorrectNumWatches,
 			"repository count 'num_watches'",
 		},
 		// Repository.NumStars
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)"),
+			// statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)"),
+			statsQuery(sqlCountNumStars),
 			repoStatsCorrectNumStars,
 			"repository count 'num_stars'",
 		},
 		// Repository.NumIssues
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", false),
+			// statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", false),
+			statsQuery(sqlCountNumIssues, false),
 			repoStatsCorrectNumIssues,
 			"repository count 'num_issues'",
 		},
 		// Repository.NumClosedIssues
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false),
+			// statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false),
+			statsQuery(sqlCountNumClosedIssues, true, false),
 			repoStatsCorrectNumClosedIssues,
 			"repository count 'num_closed_issues'",
 		},
 		// Repository.NumPulls
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", true),
+			//statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_pull=?)", true),
+			statsQuery(sqlCountNumPulls, true),
 			repoStatsCorrectNumPulls,
 			"repository count 'num_pulls'",
 		},
 		// Repository.NumClosedPulls
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
+			//statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
+			statsQuery(sqlCountNumClosedPulls, true, true),
 			repoStatsCorrectNumClosedPulls,
 			"repository count 'num_closed_pulls'",
 		},
 		// Label.NumIssues
 		{
-			statsQuery("SELECT label.id FROM `label` WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)"),
+			// statsQuery("SELECT label.id FROM `label` WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)"),
+			statsQuery(sqlCountLabelNumIssues),
 			labelStatsCorrectNumIssues,
 			"label count 'num_issues'",
 		},
 		// Label.NumClosedIssues
 		{
-			statsQuery("SELECT `label`.id FROM `label` WHERE `label`.num_closed_issues!=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?)", true),
+			//statsQuery("SELECT `label`.id FROM `label` WHERE `label`.num_closed_issues!=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?)", true),
+			statsQuery(sqlCountLabelClosedIssues, true),
 			labelStatsCorrectNumClosedIssues,
 			"label count 'num_closed_issues'",
 		},
@@ -509,13 +764,14 @@ func CheckRepoStats(ctx context.Context) error {
 		},
 		// User.NumRepos
 		{
-			statsQuery("SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)"),
+			statsQuery(sqlCountUserRepos),
 			userStatsCorrectNumRepos,
 			"user count 'num_repos'",
 		},
 		// Issue.NumComments
 		{
-			statsQuery("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND type=0)"),
+			//statsQuery("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND type=0)"),
+			statsQuery(sqlCountIssueNumComments, 0),
 			repoStatsCorrectIssueNumComments,
 			"issue count 'num_comments'",
 		},
@@ -533,7 +789,7 @@ func CheckRepoStats(ctx context.Context) error {
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
 	e := db.GetEngine(ctx)
-	results, err := e.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
+	results, err := e.Query(sqlCountNumForks)
 	if err != nil {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {

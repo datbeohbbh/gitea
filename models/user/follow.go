@@ -11,8 +11,8 @@ import (
 // Follow represents relations of user and their followers.
 type Follow struct {
 	ID          int64              `xorm:"pk autoincr"`
-	UserID      int64              `xorm:"UNIQUE(follow)"`
-	FollowID    int64              `xorm:"UNIQUE(follow)"`
+	UserID      int64              `xorm:"INDEX(follow)"`
+	FollowID    int64              `xorm:"INDEX(follow)"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 

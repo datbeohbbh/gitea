@@ -60,19 +60,19 @@ type ExternalLoginUser struct {
 	ExternalID        string                 `xorm:"pk NOT NULL"`
 	UserID            int64                  `xorm:"INDEX NOT NULL"`
 	LoginSourceID     int64                  `xorm:"pk NOT NULL"`
-	RawData           map[string]interface{} `xorm:"TEXT JSON"`
-	Provider          string                 `xorm:"index VARCHAR(25)"`
+	RawData           map[string]interface{} `xorm:"TEXT"`
+	Provider          string                 `xorm:"index VARCHAR"`
 	Email             string
 	Name              string
 	FirstName         string
 	LastName          string
 	NickName          string
 	Description       string
-	AvatarURL         string `xorm:"TEXT"`
+	AvatarURL         string `xorm:"VARCHAR"`
 	Location          string
-	AccessToken       string `xorm:"TEXT"`
-	AccessTokenSecret string `xorm:"TEXT"`
-	RefreshToken      string `xorm:"TEXT"`
+	AccessToken       string `xorm:"VARCHAR"`
+	AccessTokenSecret string `xorm:"VARCHAR"`
+	RefreshToken      string `xorm:"VARCHAR"`
 	ExpiresAt         time.Time
 }
 

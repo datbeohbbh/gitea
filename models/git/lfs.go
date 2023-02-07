@@ -112,7 +112,7 @@ func (err ErrLFSFileLocked) Unwrap() error {
 type LFSMetaObject struct {
 	ID           int64 `xorm:"pk autoincr"`
 	lfs.Pointer  `xorm:"extends"`
-	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	RepositoryID int64              `xorm:"INDEX(s) NOT NULL"`
 	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`

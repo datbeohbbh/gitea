@@ -261,18 +261,18 @@ type Comment struct {
 	CommitID        int64
 	Line            int64 // - previous line / + proposed line
 	TreePath        string
-	Content         string `xorm:"LONGTEXT"`
+	Content         string `xorm:"VARCHAR"`
 	RenderedContent string `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
 	Patch       string `xorm:"-"`
-	PatchQuoted string `xorm:"LONGTEXT patch"`
+	PatchQuoted string `xorm:"VARCHAR patch"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40)"`
+	CommitSHA string `xorm:"VARCHAR"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
 	Reactions   ReactionList             `xorm:"-"`
@@ -288,8 +288,8 @@ type Comment struct {
 	// All information is about the origin of the reference
 	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
 	RefIssueID   int64                 `xorm:"index"`
-	RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-	RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
+	RefCommentID int64                 `xorm:"index"`  // 0 if origin is Issue title or content (or PR's)
+	RefAction    references.XRefAction `xorm:"BIGINT"` // What happens if RefIssueID resolves
 	RefIsPull    bool
 
 	RefRepo    *repo_model.Repository `xorm:"-"`

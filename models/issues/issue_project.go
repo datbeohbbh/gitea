@@ -20,7 +20,10 @@ func (issue *Issue) LoadProject() (err error) {
 func (issue *Issue) loadProject(ctx context.Context) (err error) {
 	if issue.Project == nil {
 		var p project_model.Project
-		if _, err = db.GetEngine(ctx).Table("project").
+		if _, err = db.
+			GetEngine(ctx).
+			Select("`project`.*").
+			Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
 			Where("project_issue.issue_id = ?", issue.ID).
 			Get(&p); err != nil {

@@ -7,6 +7,7 @@ package access
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -20,8 +21,8 @@ import (
 // repository, the members of the owners team are in this table.
 type Access struct {
 	ID     int64 `xorm:"pk autoincr"`
-	UserID int64 `xorm:"UNIQUE(s)"`
-	RepoID int64 `xorm:"UNIQUE(s)"`
+	UserID int64 `xorm:"INDEX(s)"`
+	RepoID int64 `xorm:"INDEX(s)"`
 	Mode   perm.AccessMode
 }
 
@@ -109,6 +110,7 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 	}
 
 	// Delete old accesses and insert new ones for repository.
+	log.Printf("DEBUG: %+v\n", Access{RepoID: repo.ID})
 	if _, err = db.DeleteByBean(ctx, &Access{RepoID: repo.ID}); err != nil {
 		return fmt.Errorf("delete old accesses: %w", err)
 	}
@@ -203,7 +205,11 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []organization.Team
-		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		if err := e.
+			Select("`team`.`id`, `team`.`org_id`, `team`.`lower_name`, `team`.`name`, `team`.`description`, "+
+				"`team`.`authorize`, `team`.`num_repos`, `team`.`num_members`, `team`.`includes_all_repositories`, "+
+				"`team`.`can_create_org_repo`").
+			Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Join("INNER", "team_user", "team_user.team_id = team.id").
 			Where("team.org_id = ?", repo.OwnerID).
 			And("team_repo.repo_id=?", repo.ID).
@@ -242,5 +248,6 @@ func RecalculateAccesses(ctx context.Context, repo *repo_model.Repository) error
 	if err := refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %w", err)
 	}
+	log.Printf("DEBUG: %+v\n", *repo)
 	return refreshAccesses(ctx, repo, accessMap)
 }

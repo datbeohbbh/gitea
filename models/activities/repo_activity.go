@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -213,7 +214,14 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 	sess := pullRequestsForActivityStatement(repoID, fromTime, true)
 	sess.OrderBy("pull_request.merged_unix DESC")
 	stats.MergedPRs = make(issues_model.PullRequestList, 0)
-	if err = sess.Find(&stats.MergedPRs); err != nil {
+	if err = sess.
+		Select("`pull_request`.`id`, `pull_request`.`type`, `pull_request`.`status`, `pull_request`.`conflicted_files`, " +
+			"`pull_request`.`commits_ahead`, `pull_request`.`commits_behind`, `pull_request`.`changed_protected_files`, " +
+			"`pull_request`.`issue_id`, `pull_request`.`index`, `pull_request`.`head_repo_id`, `pull_request`.`base_repo_id`, " +
+			"`pull_request`.`head_branch`, `pull_request`.`base_branch`, `pull_request`.`merge_base`, `pull_request`.`allow_maintainer_edit`, " +
+			"`pull_request`.`has_merged`, `pull_request`.`merged_commit_id`, `pull_request`.`merger_id`, `pull_request`.`merged_unix`, " +
+			"`pull_request`.`flow`").
+		Find(&stats.MergedPRs); err != nil {
 		return err
 	}
 	if err = stats.MergedPRs.LoadAttributes(); err != nil {
@@ -229,9 +237,16 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 
 	// Opened pull requests
 	sess = pullRequestsForActivityStatement(repoID, fromTime, false)
-	sess.OrderBy("issue.created_unix ASC")
+	// sess.OrderBy("issue.created_unix ASC")
 	stats.OpenedPRs = make(issues_model.PullRequestList, 0)
-	if err = sess.Find(&stats.OpenedPRs); err != nil {
+	if err = sess.
+		Select("`pull_request`.`id`, `pull_request`.`type`, `pull_request`.`status`, `pull_request`.`conflicted_files`, " +
+			"`pull_request`.`commits_ahead`, `pull_request`.`commits_behind`, `pull_request`.`changed_protected_files`, " +
+			"`pull_request`.`issue_id`, `pull_request`.`index`, `pull_request`.`head_repo_id`, `pull_request`.`base_repo_id`, " +
+			"`pull_request`.`head_branch`, `pull_request`.`base_branch`, `pull_request`.`merge_base`, `pull_request`.`allow_maintainer_edit`, " +
+			"`pull_request`.`has_merged`, `pull_request`.`merged_commit_id`, `pull_request`.`merger_id`, `pull_request`.`merged_unix`, " +
+			"`pull_request`.`flow`").
+		Find(&stats.OpenedPRs); err != nil {
 		return err
 	}
 	if err = stats.OpenedPRs.LoadAttributes(); err != nil {
@@ -250,7 +265,10 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 
 func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged bool) *xorm.Session {
 	sess := db.GetEngine(db.DefaultContext).Where("pull_request.base_repo_id=?", repoID).
-		Join("INNER", "issue", "pull_request.issue_id = issue.id")
+		Join("INNER",
+			builder.Select("*").From("`issue`").OrderBy("`issue`.`created_unix`"),
+			"pull_request.issue_id = issue.id")
+		// Join("INNER", "issue", "pull_request.issue_id = issue.id")
 
 	if merged {
 		sess.And("pull_request.has_merged = ?", true)
