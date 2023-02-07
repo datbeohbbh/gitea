@@ -244,7 +244,16 @@ func TimeSinceUnix(then TimeStamp, lang translation.Locale) template.HTML {
 }
 
 func htmlTimeSinceUnix(then, now TimeStamp, lang translation.Locale) template.HTML {
+	then = toUnix(then)
+	now = toUnix(now)
 	return template.HTML(fmt.Sprintf(`<span class="time-since tooltip" data-content="%s">%s</span>`,
 		then.FormatInLocation(GetTimeFormat(lang.Language()), setting.DefaultUILocation),
 		timeSinceUnix(int64(then), int64(now), lang)))
+}
+
+func toUnix(t TimeStamp) TimeStamp {
+	if t > TimeStampNow() {
+		t /= Micro
+	}
+	return t
 }

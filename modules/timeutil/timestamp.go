@@ -12,6 +12,8 @@ import (
 // TimeStamp defines a timestamp
 type TimeStamp int64
 
+const Micro TimeStamp = 1000000
+
 var (
 	// mock is NOT concurrency-safe!!
 	mock time.Time
@@ -60,12 +62,20 @@ func (ts TimeStamp) AsTime() (tm time.Time) {
 
 // AsLocalTime convert timestamp as time.Time in local location
 func (ts TimeStamp) AsLocalTime() time.Time {
-	return time.Unix(int64(ts), 0)
+	var val TimeStamp = ts
+	if val > TimeStampNow() {
+		val /= Micro
+	}
+	return time.Unix(int64(val), 0)
 }
 
 // AsTimeInLocation convert timestamp as time.Time in Local locale
 func (ts TimeStamp) AsTimeInLocation(loc *time.Location) (tm time.Time) {
-	tm = time.Unix(int64(ts), 0).In(loc)
+	var val TimeStamp = ts
+	if val > TimeStampNow() {
+		val /= Micro
+	}
+	tm = time.Unix(int64(val), 0).In(loc)
 	return tm
 }
 
@@ -76,7 +86,11 @@ func (ts TimeStamp) AsTimePtr() *time.Time {
 
 // AsTimePtrInLocation convert timestamp as *time.Time in customize location
 func (ts TimeStamp) AsTimePtrInLocation(loc *time.Location) *time.Time {
-	tm := time.Unix(int64(ts), 0).In(loc)
+	var val TimeStamp = ts
+	if val > TimeStampNow() {
+		val /= Micro
+	}
+	tm := time.Unix(int64(val), 0).In(loc)
 	return &tm
 }
 
@@ -102,7 +116,11 @@ func (ts TimeStamp) FormatShort() string {
 
 // FormatDate formats a date in YYYY-MM-DD server time zone
 func (ts TimeStamp) FormatDate() string {
-	return time.Unix(int64(ts), 0).String()[:10]
+	var val TimeStamp = ts
+	if val > TimeStampNow() {
+		val /= Micro
+	}
+	return time.Unix(int64(val), 0).String()[:10]
 }
 
 // IsZero is zero time
