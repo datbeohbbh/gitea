@@ -160,7 +160,10 @@ func GetRepoWatchersIDs(ctx context.Context, repoID int64) ([]int64, error) {
 
 // GetRepoWatchers returns range of users watching given repository.
 func GetRepoWatchers(repoID int64, opts db.ListOptions) ([]*user_model.User, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("watch.repo_id=?", repoID).
+	sess := db.
+		GetEngine(db.DefaultContext).
+		Select("`user`.*").
+		Where("watch.repo_id=?", repoID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", WatchModeDont)
 	if opts.Page > 0 {

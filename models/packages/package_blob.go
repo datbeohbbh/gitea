@@ -72,9 +72,10 @@ func ExistPackageBlobWithSHA(ctx context.Context, blobSha256 string) (bool, erro
 func FindExpiredUnreferencedBlobs(ctx context.Context, olderThan time.Duration) ([]*PackageBlob, error) {
 	pbs := make([]*PackageBlob, 0, 10)
 	return pbs, db.GetEngine(ctx).
+		Select("`package_blob`.*").
 		Table("package_blob").
 		Join("LEFT", "package_file", "package_file.blob_id = package_blob.id").
-		Where("package_file.id IS NULL AND package_blob.created_unix < ?", time.Now().Add(-olderThan).Unix()).
+		Where("package_file.id IS NULL AND package_blob.created_unix < ?", time.Now().Add(-olderThan).UnixMicro()).
 		Find(&pbs)
 }
 

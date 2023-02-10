@@ -1182,7 +1182,8 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 			Desc("issue.created_unix").
 			Desc("issue.id")
 	case "project-column-sorting":
-		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
+		// sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
+		sess.Desc("issue.created_unix").Desc("issue.id")
 	default:
 		sess.Desc("issue.created_unix").Desc("issue.id")
 	}
@@ -1249,8 +1250,16 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if opts.ProjectID > 0 {
-		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
-			And("project_issue.project_id=?", opts.ProjectID)
+		/* 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+		And("project_issue.project_id=?", opts.ProjectID) */
+		sess.Join("INNER",
+			builder.
+				Select("`project_issue`.*").
+				From("`project_issue`").
+				Where(builder.Eq{"`project_issue`.`project_id`": opts.ProjectID}).
+				OrderBy("`project_issue`.`sorting` ASC"),
+			"issue.id = project_issue.issue_id",
+		)
 	}
 
 	if opts.ProjectBoardID != 0 {
@@ -1494,10 +1503,6 @@ func Issues(ctx context.Context, opts *IssuesOptions) ([]*Issue, error) {
 	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
-	}
-	//DEBUG
-	for _, issue := range issues {
-		fmt.Printf("[DEBUG]: %+v\n", issue)
 	}
 
 	if err := IssueList(issues).LoadAttributes(); err != nil {

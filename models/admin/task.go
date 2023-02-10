@@ -34,8 +34,8 @@ type Task struct {
 	Status         structs.TaskStatus `xorm:"index"`
 	StartTime      timeutil.TimeStamp
 	EndTime        timeutil.TimeStamp
-	PayloadContent string             `xorm:"VARCHAR"`
-	Message        string             `xorm:"VARCHAR"` // if task failed, saved the error reason
+	PayloadContent string             `xorm:"TEXT"`
+	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason
 	Created        timeutil.TimeStamp `xorm:"created"`
 }
 

@@ -255,9 +255,24 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 	}
 
 	topicNames := make([]string, 0, 25)
-	if err := sess.Select("name").Table("topic").
+	/* 	if err := sess.Select("name").Table("topic").
 		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
 		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
+		return nil, err
+	} */
+
+	if err := sess.
+		SQL(builder.Select(`name`).
+			From(builder.Select(
+				"`topic`.name AS name, "+
+					"`topic`.repo_count AS repo_count",
+			).
+				From(`topic`).
+				InnerJoin(`repo_topic`, builder.Expr("repo_topic.topic_id = topic.id")).
+				Where(builder.Eq{"repo_topic.repo_id": repoID}).
+				OrderBy("repo_count DESC"),
+			)).
+		Find(&topicNames); err != nil {
 		return nil, err
 	}
 
@@ -349,9 +364,24 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 	}
 
 	topicNames = make([]string, 0, 25)
-	if err := sess.Table("topic").Cols("name").
+	/* 	if err := sess.Table("topic").Cols("name").
 		Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id").
 		Where("repo_topic.repo_id = ?", repoID).Desc("topic.repo_count").Find(&topicNames); err != nil {
+		return err
+	} */
+
+	if err := sess.
+		SQL(builder.Select(`name`).
+			From(builder.Select(
+				"`topic`.name AS name, "+
+					"`topic`.repo_count AS repo_count",
+			).
+				From(`topic`).
+				InnerJoin(`repo_topic`, builder.Expr("repo_topic.topic_id = topic.id")).
+				Where(builder.Eq{"repo_topic.repo_id": repoID}).
+				OrderBy("repo_count DESC"),
+			)).
+		Find(&topicNames); err != nil {
 		return err
 	}
 

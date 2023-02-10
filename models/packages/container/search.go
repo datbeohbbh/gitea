@@ -246,6 +246,7 @@ func SearchExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) ([
 
 	var pfs []*packages.PackageFile
 	return pfs, db.GetEngine(ctx).
+		Select("`package_file`.*").
 		Join("INNER", "package_version", "package_version.id = package_file.version_id").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond).

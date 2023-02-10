@@ -8,6 +8,7 @@ import (
 	"database/sql"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/retry"
 	"xorm.io/xorm/schemas"
 )
 
@@ -138,9 +139,12 @@ func TxContext(parentCtx context.Context) (*Context, Committer, error) {
 // this function will reuse it otherwise will create a new one and close it when finished.
 func WithTx(parentCtx context.Context, f func(ctx context.Context) error) error {
 	if sess, ok := inTransaction(parentCtx); ok {
-		err := f(newContext(parentCtx, sess, true))
+		isRetryableFunc := sess.Dialect().IsRetryable
+		err := retry.Retry(parentCtx, isRetryableFunc, func(ctx context.Context) error {
+			err := f(newContext(ctx, sess, true))
+			return err
+		}, retry.WithID("retry-WithTx"), retry.WithMaxRetries(50), retry.WithIdempotent(true))
 		if err != nil {
-			// rollback immediately, in case the caller ignores returned error and tries to commit the transaction.
 			_ = sess.Close()
 		}
 		return err
@@ -155,7 +159,12 @@ func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error)
 		return err
 	}
 
-	if err := f(newContext(parentCtx, sess, true)); err != nil {
+	isRetryableFunc := sess.Dialect().IsRetryable
+	err := retry.Retry(parentCtx, isRetryableFunc, func(ctx context.Context) error {
+		err := f(newContext(ctx, sess, true))
+		return err
+	}, retry.WithID("retry-txWithNoCheck"), retry.WithMaxRetries(50), retry.WithIdempotent(true))
+	if err != nil {
 		return err
 	}
 
@@ -164,30 +173,56 @@ func txWithNoCheck(parentCtx context.Context, f func(ctx context.Context) error)
 
 // Insert inserts records into database
 func Insert(ctx context.Context, beans ...interface{}) error {
-	_, err := GetEngine(ctx).Insert(beans...)
-	return err
+	isRetryableFunc := GetEngine(ctx).Dialect().IsRetryable
+	return retry.Retry(ctx, isRetryableFunc, func(ctx context.Context) error {
+		_, err := GetEngine(ctx).Insert(beans...)
+		return err
+	}, retry.WithID("retry-on-insert"))
 }
 
 // Exec executes a sql with args
-func Exec(ctx context.Context, sqlAndArgs ...interface{}) (sql.Result, error) {
-	return GetEngine(ctx).Exec(sqlAndArgs...)
+func Exec(ctx context.Context, sqlAndArgs ...interface{}) (result sql.Result, err error) {
+	// implemented internal retry in xorm side
+	isRetryableFunc := GetEngine(ctx).Dialect().IsRetryable
+	retry.Retry(ctx, isRetryableFunc, func(ctx context.Context) error {
+		result, err = GetEngine(ctx).Exec(sqlAndArgs...)
+		return err
+	}, retry.WithID("retry-on-exec"), retry.WithIdempotent(true))
+	return result, err
 }
 
 // GetByBean filled empty fields of the bean according non-empty fields to query in database.
-func GetByBean(ctx context.Context, bean interface{}) (bool, error) {
-	return GetEngine(ctx).Get(bean)
+func GetByBean(ctx context.Context, bean interface{}) (ok bool, err error) {
+	isRetryableFunc := GetEngine(ctx).Dialect().IsRetryable
+	retry.Retry(ctx, isRetryableFunc, func(ctx context.Context) error {
+		ok, err = GetEngine(ctx).Get(bean)
+		return err
+	}, retry.WithID("retry-on-get"), retry.WithIdempotent(true))
+
+	return ok, err
 }
 
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
-func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
-	return GetEngine(ctx).Delete(bean)
+func DeleteByBean(ctx context.Context, bean interface{}) (affected int64, err error) {
+	isRetryableFunc := GetEngine(ctx).Dialect().IsRetryable
+	retry.Retry(ctx, isRetryableFunc, func(ctx context.Context) error {
+		affected, err = GetEngine(ctx).Delete(bean)
+		return err
+	}, retry.WithID("retry-on-delete-bean"), retry.WithIdempotent(true))
+
+	return affected, err
 }
 
 // DeleteBeans deletes all given beans, beans should contain delete conditions.
 func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
 	e := GetEngine(ctx)
 	for i := range beans {
-		if _, err = e.Delete(beans[i]); err != nil {
+		isRetryableFunc := e.Dialect().IsRetryable
+		err = retry.Retry(ctx, isRetryableFunc, func(ctx context.Context) error {
+			_, err = e.Delete(beans[i])
+			return err
+		}, retry.WithID("retry-on-delete-beans"), retry.WithIdempotent(true))
+		if err != nil {
 			return err
 		}
 	}
@@ -195,8 +230,14 @@ func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
 }
 
 // CountByBean counts the number of database records according non-empty fields of the bean as conditions.
-func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
-	return GetEngine(ctx).Count(bean)
+func CountByBean(ctx context.Context, bean interface{}) (cnt int64, err error) {
+	isRetryableFunc := GetEngine(ctx).Dialect().IsRetryable
+	retry.Retry(ctx, isRetryableFunc, func(ctx context.Context) error {
+		cnt, err = GetEngine(ctx).Count(bean)
+		return err
+	}, retry.WithID("retry-on-count"), retry.WithIdempotent(true))
+
+	return cnt, err
 }
 
 // TableName returns the table name according a bean object
@@ -223,7 +264,11 @@ func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 	case schemas.MSSQL:
 		_, err = e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
 	default:
-		return e.Context(ctx).Count(tablename)
+		isRetryableFunc := e.Dialect().IsRetryable
+		retry.Retry(ctx, isRetryableFunc, func(ctx context.Context) error {
+			rows, err = e.Context(ctx).Count(tablename)
+			return err
+		}, retry.WithID("retry-on-estimate-count"), retry.WithIdempotent(true))
 	}
 	return rows, err
 }

@@ -44,7 +44,7 @@ func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *us
 	case setting.Database.UseMSSQL:
 		groupByName = groupBy
 	case setting.Database.UseYDB:
-		// groupBy = "created_unix"
+		groupBy = "(created_unix / (900 * 1000000) * (900 * 1000000)) / 1000000"
 		groupByName = "created_unix"
 	}
 

@@ -451,7 +451,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				}
 
 				if opts.IncludeDescription {
-					likes = likes.Or(builder.Like{"LOWER(description)", strings.ToLower(v)})
+					likes = likes.Or(builder.Like{"description", strings.ToLower(v)})
 				}
 			}
 			keywordCond = keywordCond.Or(likes)

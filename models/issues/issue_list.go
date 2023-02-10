@@ -6,7 +6,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
@@ -359,7 +358,6 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 		if left < limit {
 			limit = left
 		}
-		log.Printf("[DEBUG]: [issuesIDs]: %+v\n", issuesIDs[:limit])
 		rows, err := db.GetEngine(ctx).
 			In("issue_id", issuesIDs[:limit]).
 			Rows(new(PullRequest))
@@ -377,8 +375,6 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 				return err
 			}
 			pullRequestMaps[pr.IssueID] = &pr
-			log.Printf("[DEBUG]: [pr.IssueId] %+v\n", pr.IssueID)
-			log.Printf("[DEBUG]: [pr]%+v\n", pr)
 		}
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)

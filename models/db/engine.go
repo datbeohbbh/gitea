@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
@@ -65,6 +66,8 @@ type Engine interface {
 	Cols(...string) *xorm.Session
 	Context(ctx context.Context) *xorm.Session
 	Ping() error
+
+	Dialect() dialects.Dialect
 }
 
 // TableInfo returns table's information via an object

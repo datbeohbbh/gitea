@@ -211,7 +211,7 @@ func UpdateBoard(ctx context.Context, board *Board) error {
 func GetBoards(ctx context.Context, projectID int64) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
 
-	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting").Find(&boards); err != nil {
+	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", projectID, false).OrderBy("sorting").Find(&boards); err != nil {
 		return nil, err
 	}
 

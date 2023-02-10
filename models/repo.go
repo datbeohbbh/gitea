@@ -354,8 +354,6 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 	}
 	for _, result := range results {
 		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
-		fmt.Printf("[DEBUG] [id]: %+v\n", id)
-		fmt.Printf("[DEBUG] [desc]: %+v\n", checker.desc)
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before checking %s for with id=%d", checker.desc, id)
@@ -376,29 +374,47 @@ func StatsCorrectSQL(ctx context.Context, sql string, id int64) error {
 }
 
 func repoStatsCorrectNumWatches(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2); UPDATE `repository` SET num_watches = $cnt WHERE id=?", id)
+	return StatsCorrectSQL(ctx,
+		"$cnt=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2); "+
+			"UPDATE `repository` SET num_watches = CAST($cnt AS Int32) WHERE id=?", id)
 }
 
 func repoStatsCorrectNumStars(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `star` WHERE repo_id=?); UPDATE `repository` SET num_stars = $cnt WHERE id=?", id)
+	return StatsCorrectSQL(ctx,
+		"$cnt=(SELECT COUNT(*) FROM `star` WHERE repo_id=?); "+
+			"UPDATE `repository` SET num_stars = CAST($cnt AS Int32) WHERE id=?", id)
 }
 
 func labelStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?); UPDATE `label` SET num_issues = $cnt WHERE id=?", id)
+	return StatsCorrectSQL(ctx,
+		"$cnt=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?); "+
+			"UPDATE `label` SET num_issues = CAST($cnt AS Int32) WHERE id=?", id)
 }
 
 func labelStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("$cnt=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=id); UPDATE `label` SET num_issues = $cnt WHERE repo_id=?", id)
+	_, err := db.GetEngine(ctx).Exec("$cnt=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=id); "+
+		"UPDATE `label` SET num_issues = CAST($cnt AS Int32) WHERE repo_id=?", id)
 	return err
 }
 
 func labelStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("$cnt=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?); UPDATE `label` SET num_closed_issues = $cnt WHERE `label`.id=?", true, id)
+	_, err := db.GetEngine(ctx).Exec("$cnt=("+
+		"SELECT COUNT(*) FROM `label` "+
+		"INNER JOIN `issue_label` ON `issue_label`.label_id=`label`.id "+
+		"INNER JOIN `issue` ON `issue_label`.issue_id=`issue`.id "+
+		"WHERE `issue`.is_closed=?); "+
+		"UPDATE `label` SET num_closed_issues = CAST($cnt AS Int32) WHERE `label`.id=?", true, id)
 	return err
 }
 
 func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("$cnt = (SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?); UPDATE `label` SET num_closed_issues = $cnt WHERE `label`.repo_id=?", true, id)
+	_, err := db.GetEngine(ctx).Exec(
+		"$cnt=("+
+			"SELECT COUNT(*) FROM `label` "+
+			"INNER JOIN `issue_label` ON `issue_label`.label_id=`label`.id "+
+			"INNER JOIN `issue` ON `issue_label`.issue_id=`issue`.id "+
+			"WHERE `issue`.is_closed=?); "+
+			"UPDATE `label` SET num_closed_issues = CAST($cnt AS Int32) WHERE `label`.repo_id=?", true, id)
 	return err
 }
 
@@ -459,11 +475,15 @@ func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 }
 
 func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?); UPDATE `user` SET num_repos = $cnt WHERE id=?", id)
+	return StatsCorrectSQL(ctx,
+		"$cnt=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?); "+
+			"UPDATE `user` SET num_repos = CAST($cnt AS Int32) WHERE id=?", id)
 }
 
 func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
-	return StatsCorrectSQL(ctx, "$cnt=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0); UPDATE `issue` SET num_comments = $cnt WHERE id=?", id)
+	return StatsCorrectSQL(ctx,
+		"$cnt=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0); "+
+			"UPDATE `issue` SET num_comments = CAST($cnt AS Int32) WHERE id=?", id)
 }
 
 func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
@@ -855,7 +875,9 @@ func updateUserStarNumbers(users []user_model.User) error {
 	defer committer.Close()
 
 	for _, user := range users {
-		if _, err = db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+		if _, err = db.Exec(ctx,
+			"$cnt=(SELECT COUNT(*) FROM `star` WHERE uid=?); "+
+				"UPDATE `user` SET num_stars = CAST($cnt AS Int32) WHERE id=?", user.ID, user.ID); err != nil {
 			return err
 		}
 	}
