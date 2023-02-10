@@ -51,6 +51,7 @@ var (
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
 		AutoMigration     bool
+		QueryMode         string
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
@@ -110,6 +111,7 @@ func InitDBConfig() {
 	Database.DBConnectRetries = sec.Key("DB_RETRIES").MustInt(10)
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
+	Database.QueryMode = sec.Key("QUERY_MODE").String()
 }
 
 // DBConnStr returns database connection string
@@ -154,9 +156,13 @@ func DBConnStr() (string, error) {
 		if Database.SSLMode != "disable" {
 			tls = "grpcs"
 		}
-		connStr = fmt.Sprintf("%s://%s/%s?query_mode=scripting", tls, Database.Host, Database.Name)
+		queryMode := ""
+		if Database.QueryMode != "" {
+			queryMode = fmt.Sprintf("query_mode=%s", Database.QueryMode)
+		}
+		connStr = fmt.Sprintf("%s://%s/%s?%s", tls, Database.Host, Database.Name, queryMode)
 		if Database.User != "" && Database.Passwd != "" {
-			connStr = fmt.Sprintf("%s://%s:%s@%s/%s?query_mode=scripting", tls, Database.User, Database.Passwd, Database.Host, Database.Name)
+			connStr = fmt.Sprintf("%s://%s:%s@%s/%s?%s", tls, Database.User, Database.Passwd, Database.Host, Database.Name, queryMode)
 		} else if _, has := os.LookupEnv("YDB_SSL_ROOT_CERTIFICATES_FILE"); !has {
 			connStr = ""
 		}
