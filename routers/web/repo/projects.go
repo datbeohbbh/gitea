@@ -606,7 +606,7 @@ func MoveIssues(ctx *context.Context) {
 
 	type movedIssuesForm struct {
 		Issues []struct {
-			IssueID int64 `json:"issueID"`
+			IssueID int64 `json:"issueID,string"`
 			Sorting int64 `json:"sorting"`
 		} `json:"issues"`
 	}

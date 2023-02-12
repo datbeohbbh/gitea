@@ -7,7 +7,6 @@ package access
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
@@ -110,7 +109,6 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 	}
 
 	// Delete old accesses and insert new ones for repository.
-	log.Printf("DEBUG: %+v\n", Access{RepoID: repo.ID})
 	if _, err = db.DeleteByBean(ctx, &Access{RepoID: repo.ID}); err != nil {
 		return fmt.Errorf("delete old accesses: %w", err)
 	}
@@ -248,6 +246,5 @@ func RecalculateAccesses(ctx context.Context, repo *repo_model.Repository) error
 	if err := refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %w", err)
 	}
-	log.Printf("DEBUG: %+v\n", *repo)
 	return refreshAccesses(ctx, repo, accessMap)
 }
