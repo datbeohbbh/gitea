@@ -1,6 +1,9 @@
 sudo: required
 language: generic
 
+branches:
+  - gitea/aws
+
 services:
   - docker
 
