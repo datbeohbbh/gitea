@@ -1,0 +1,28 @@
+sudo: required
+language: generic
+
+services:
+  - docker
+
+script:
+  - docker build --disable-content-trust=false -t datbeohbbh/gitea:latest .
+
+after_success:
+  # Log in to the docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  # tag image
+  - docker tag datbeohbbh/gitea:latest datbeohbbg/gitea:latest
+  # Take those images and push them to docker hub
+  - docker push datbeohbbg/gitea:latest
+
+deploy:
+  provider: elasticbeanstalk
+  region: 'us-west-2'
+  app: 'gitea'
+  env: 'Gitea-env'
+  bucket_name: 'elasticbeanstalk-us-west-2-982680289657'
+  bucket_path: 'docker-gitea'
+  on:
+    branch: gitea/aws
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
