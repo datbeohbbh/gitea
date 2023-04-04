@@ -52,6 +52,7 @@ var (
 		IterateBufferSize int
 		AutoMigration     bool
 		QueryMode         string
+		TablePathPrefix   string
 	}{
 		Timeout:           500,
 		IterateBufferSize: 50,
@@ -112,6 +113,7 @@ func InitDBConfig() {
 	Database.DBConnectBackoff = sec.Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 	Database.AutoMigration = sec.Key("AUTO_MIGRATION").MustBool(true)
 	Database.QueryMode = sec.Key("QUERY_MODE").String()
+	Database.TablePathPrefix = sec.Key("TABLE_PATH_PREFIX").String()
 }
 
 // DBConnStr returns database connection string
@@ -160,11 +162,13 @@ func DBConnStr() (string, error) {
 		if Database.QueryMode != "" {
 			queryMode = fmt.Sprintf("query_mode=%s", Database.QueryMode)
 		}
-		connStr = fmt.Sprintf("%s://%s/%s?%s", tls, Database.Host, Database.Name, queryMode)
+		tablePathPrefix := ""
+		if Database.TablePathPrefix != "" {
+			tablePathPrefix = fmt.Sprintf("table_path_prefix=%s", Database.TablePathPrefix)
+		}
+		connStr = fmt.Sprintf("%s://%s/%s?%s&%s", tls, Database.Host, Database.Name, queryMode, tablePathPrefix)
 		if Database.User != "" && Database.Passwd != "" {
 			connStr = fmt.Sprintf("%s://%s:%s@%s/%s?%s", tls, Database.User, Database.Passwd, Database.Host, Database.Name, queryMode)
-		} else if _, has := os.LookupEnv("YDB_SSL_ROOT_CERTIFICATES_FILE"); !has {
-			connStr = ""
 		}
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)

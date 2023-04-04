@@ -101,10 +101,10 @@ require (
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20220924101305-151362477c87
 	github.com/yuin/goldmark-meta v1.1.0
 	golang.org/x/crypto v0.4.0
-	golang.org/x/net v0.5.0
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.3.0
-	golang.org/x/sys v0.4.0
-	golang.org/x/text v0.6.0
+	golang.org/x/sys v0.5.0
+	golang.org/x/text v0.7.0
 	golang.org/x/tools v0.1.12
 	google.golang.org/grpc v1.52.3
 	google.golang.org/protobuf v1.28.1
@@ -266,7 +266,7 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20221215182650-986f9d10542f // indirect
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.42.8 // indirect
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.43.0-rc5 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.mongodb.org/mongo-driver v1.10.1 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
@@ -298,4 +298,5 @@ exclude github.com/goccy/go-json v0.4.11
 
 exclude github.com/satori/go.uuid v1.2.0
 
-replace xorm.io/xorm => ./../../xorm
+replace xorm.io/xorm => ./../xorm
+replace github.com/ydb-platform/ydb-go-sdk/v3 => ./../../ydb-go-sdk
